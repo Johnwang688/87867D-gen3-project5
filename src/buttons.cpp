@@ -53,16 +53,14 @@ namespace bot {
         }
         void stop_intaking(){
             lower.stop();
-            upper.stop();
         }
         void score_upper(){
-            bot::intake_methods::stop_intaking();
             upper.spin(forward, 100, percent);
-            lower.spin(forward, 100, percent);
+            mid.spin(forward, 100, percent);
         }
         void stop_scoring_upper(){
             upper.stop();
-            lower.stop();
+            mid.stop();
         }
         void outtake(){
             lower.spin(reverse, 100, percent);
@@ -74,7 +72,7 @@ namespace bot {
 
         void score_middle(){
             bot::mid_scoring_status = true;
-            mid.spin(reverse, 50.0, percent); 
+            mid.spin(reverse, 100.0, percent); 
         }
 
         void stop_scoring_middle(){
