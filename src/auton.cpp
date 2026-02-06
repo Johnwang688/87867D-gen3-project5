@@ -29,7 +29,30 @@ namespace bot {
         }
 
         void left_4() {
-
+            bot::Controller1.Screen.clearScreen();
+            bot::Controller1.Screen.setCursor(1,1);
+            double start_time = bot::Brain.Timer.time(vex::msec);
+            bot::Controller1.Screen.print("start time: %.1f", start_time);
+            bot::motors::lower.spin(vex::forward, 100, vex::percent);
+            bot::pistons::arm_piston.set(true);
+            dt.drive(650, 1500, 100, -35);
+            bot::pistons::match_load_piston.set(true);
+            dt.drive(-400, 800, 100, 90);
+            dt.drive(-700, 800, 100, -135);
+            bot::motors::intake.spin(vex::forward, 100, vex::percent);
+            bot::pistons::match_load_piston.set(false);
+            dt.turn_to_heading(180, 500, 100);
+            dt.drive(-400, 500, 70, 180);
+            dt.drive(200, 800, 60, -90);
+            dt.drive(200, 800, 60, 180);
+            bot::pistons::arm_piston.set(false);
+            dt.drive(-650, 1000, 60, 180);
+            dt.brake();
+            bot::Controller1.Screen.setCursor(2,1);
+            double end_time = bot::Brain.Timer.time(vex::msec);
+            bot::Controller1.Screen.print("end time: %.1f", end_time);
+            bot::Controller1.Screen.setCursor(3,1);
+            bot::Controller1.Screen.print("time taken: %.1f", end_time - start_time);
         }
 
         void right_4() {

@@ -38,11 +38,7 @@ namespace bot {
         bot::Controller1.Screen.setCursor(2,1);
         bot::Controller1.Screen.print("Right Max: %.1f%%", max_right_temp);
         bot::Controller1.Screen.setCursor(3,1);
-        bot::Controller1.Screen.print("L: %.1f%%", lower_temp);
-        bot::Controller1.Screen.setCursor(3, 6);
-        bot::Controller1.Screen.print("M: %.1f%%", mid_temp);
-        bot::Controller1.Screen.setCursor(3, 12);
-        bot::Controller1.Screen.print("U: %.1f%%", upper_temp);
+        bot::Controller1.Screen.print("L: %.1f M: %.1f U: %.1f", lower_temp, mid_temp, upper_temp);
     }
 
     namespace intake_methods {
