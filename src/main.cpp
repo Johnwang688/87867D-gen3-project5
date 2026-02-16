@@ -109,15 +109,15 @@ void auton_selector() {
 /*  not every time that the robot is disabled.                               */
 /*---------------------------------------------------------------------------*/
 
-void pre_auton(void) {
-
-  // All activities that occur before the competition starts
-  // Example: clearing encoders, setting servo positions, ...
-
+// Setup run before auton (calibrate IMU, etc.). Used by pre_auton and by the auton tester in usercontrol.
+static void pre_auton_setup(void) {
   bot::sensors::imu.calibrate();
   vex::task::sleep(500);
+}
+
+void pre_auton(void) {
+  pre_auton_setup();
   auton_selector();
-  return;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -135,6 +135,11 @@ void autonomous(void) {
     return;
   }
 
+  bot::Controller1.Screen.clearScreen();
+  double start_time = bot::Brain.Timer.time(vex::msec);
+  bot::Controller1.Screen.setCursor(1, 1);
+  bot::Controller1.Screen.print("Auton: %s", bot::auton_list[bot::confirmedAuton].c_str());
+
   switch (bot::confirmedAuton) {
     case 0:  bot::autons::left_7(); break;
     case 1:  bot::autons::left_4(); break;
@@ -151,6 +156,13 @@ void autonomous(void) {
     case 12: bot::autons::test(); break;
     default: break;
   }
+
+  double end_time = bot::Brain.Timer.time(vex::msec);
+  double time_taken_ms = end_time - start_time;
+  bot::Controller1.Screen.setCursor(2, 1);
+  bot::Controller1.Screen.print("Time: %.2f s", time_taken_ms / 1000.0);
+  bot::Controller1.Screen.setCursor(3, 1);
+  bot::Controller1.Screen.print("(%.0f ms)", time_taken_ms);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -164,6 +176,11 @@ void autonomous(void) {
 /*---------------------------------------------------------------------------*/
 
 void usercontrol(void) {
+  // Autonomous tester: select auton, run pre_auton setup, then run auton and show time
+  auton_selector();
+  pre_auton_setup();
+  autonomous();
+
   bot::drivetrains::dt.coast();
   bot::motors::left_dt.stop();
   bot::motors::right_dt.stop();
