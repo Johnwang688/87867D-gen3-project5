@@ -29,4 +29,23 @@ namespace bot {
         void skills();
         void test();
     }
+
+    extern std::vector<std::string> auton_list;
+      
+    extern int selectedIndex;
+    extern int topIndex;
+    extern int confirmedAuton;
+
+    enum SelectorState {
+        SELECTING,
+        CONFIRMING,
+        READY
+    };
+
+    extern SelectorState currentState;
+    extern SelectorState get_current_state();
+
+    void draw_list();
+    void draw_confirm();
+    void draw_ready();
 }

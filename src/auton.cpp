@@ -203,6 +203,7 @@ namespace bot {
             bot::Controller1.Screen.setCursor(1,1);
             double start_time = bot::Brain.Timer.time(vex::msec);
             bot::Controller1.Screen.print("start time: %.1f", start_time);
+            bot::pistons::arm_piston.set(true);
             bot::motors::lower.spin(vex::forward, 100, vex::percent);
             dt.drive(650, 1500, 100, 35);
             bot::pistons::match_load_piston.set(true);
@@ -440,5 +441,72 @@ namespace bot {
         }
     }
 
+    std::vector<std::string> auton_list = {
+        "Left 7",
+        "Left 4",
+        "Left 4+3",
+        "Left 6+3",
+        "Left 6",
+        "Right 7",
+        "Right 6",
+        "Right 4",
+        "Right 4+3",
+        "Sawp",
+        "Counter Sawp",
+        "Skills",
+        "Test auto"
+    };
 
+    int selectedIndex = 0;
+    int topIndex = 0;
+    int confirmedAuton = -1;
+    SelectorState currentState = SELECTING;
+
+    SelectorState get_current_state() {
+        return currentState;
+    }
+
+    void draw_list() {
+        bot::Controller1.Screen.clearScreen();
+        if (auton_list.empty()) return;
+
+        const int size = static_cast<int>(auton_list.size());
+        const int maxTop = (size > 3) ? (size - 3) : 0;
+        const int safeTop = std::max(0, std::min(topIndex, maxTop));
+
+        for (int i = 0; i < 3; i++) {
+            int autonIndex = safeTop + i;
+            if (autonIndex >= size) break;
+
+            bot::Controller1.Screen.setCursor(i + 1, 1);
+            if (autonIndex == selectedIndex)
+                bot::Controller1.Screen.print("> %s", auton_list[autonIndex].c_str());
+            else
+                bot::Controller1.Screen.print("  %s", auton_list[autonIndex].c_str());
+        }
+    }
+
+    void draw_confirm() {
+        bot::Controller1.Screen.clearScreen();
+        bot::Controller1.Screen.setCursor(1, 1);
+        bot::Controller1.Screen.print("Select:");
+        bot::Controller1.Screen.setCursor(2, 1);
+        if (selectedIndex >= 0 && selectedIndex < static_cast<int>(auton_list.size()))
+            bot::Controller1.Screen.print("%s", auton_list[selectedIndex].c_str());
+        else
+            bot::Controller1.Screen.print("(invalid)");
+        bot::Controller1.Screen.setCursor(3, 1);
+        bot::Controller1.Screen.print("A=Yes  B=No");
+    }
+
+    void draw_ready() {
+        bot::Controller1.Screen.clearScreen();
+        bot::Controller1.Screen.setCursor(1, 1);
+        bot::Controller1.Screen.print("Auton selected:");
+        bot::Controller1.Screen.setCursor(2, 1);
+        if (confirmedAuton >= 0 && confirmedAuton < static_cast<int>(auton_list.size()))
+            bot::Controller1.Screen.print("%s", auton_list[confirmedAuton].c_str());
+        else
+            bot::Controller1.Screen.print("(none)");
+    }
 }

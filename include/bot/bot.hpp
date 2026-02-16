@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <string>
 
 
 #include "bot/robot_config.hpp"
