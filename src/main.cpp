@@ -20,6 +20,12 @@ void auton_selector() {
     return;
   }
 
+  // Reset selector state so each call starts fresh
+  bot::selectedIndex = 0;
+  bot::topIndex = 0;
+  bot::confirmedAuton = -1;
+  bot::currentState = bot::SELECTING;
+
   bool redraw = true;
   const int listSize = static_cast<int>(bot::auton_list.size());
   const int maxTopIndex = (listSize > 3) ? (listSize - 3) : 0;
@@ -47,9 +53,8 @@ void auton_selector() {
         redraw = true;
         wait(250, msec);
       }
-
       // Scroll Up
-      if (bot::Controller1.ButtonUp.pressing()) {
+      else if (bot::Controller1.ButtonUp.pressing()) {
         bot::selectedIndex--;
         if (bot::selectedIndex < 0)
           bot::selectedIndex = 0;
@@ -62,9 +67,8 @@ void auton_selector() {
         redraw = true;
         wait(250, msec);
       }
-
       // Select
-      if (bot::Controller1.ButtonA.pressing()) {
+      else if (bot::Controller1.ButtonA.pressing()) {
         bot::currentState = bot::CONFIRMING;
         redraw = true;
         while (bot::Controller1.ButtonA.pressing()) { wait(20, msec); }
@@ -112,12 +116,15 @@ void auton_selector() {
 // Setup run before auton (calibrate IMU, etc.). Used by pre_auton and by the auton tester in usercontrol.
 static void pre_auton_setup(void) {
   bot::sensors::imu.calibrate();
+  while(bot::sensors::imu.isCalibrating()) {
+    vex::task::sleep(50);
+  }
+  bot::sensors::imu.setHeading(0, vex::degrees);
   vex::task::sleep(500);
 }
 
 void pre_auton(void) {
   pre_auton_setup();
-  auton_selector();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -159,6 +166,9 @@ void autonomous(void) {
 
   double end_time = bot::Brain.Timer.time(vex::msec);
   double time_taken_ms = end_time - start_time;
+  bot::Controller1.Screen.clearScreen();
+  bot::Controller1.Screen.setCursor(1, 1);
+  bot::Controller1.Screen.print("%s", bot::auton_list[bot::confirmedAuton].c_str());
   bot::Controller1.Screen.setCursor(2, 1);
   bot::Controller1.Screen.print("Time: %.2f s", time_taken_ms / 1000.0);
   bot::Controller1.Screen.setCursor(3, 1);
