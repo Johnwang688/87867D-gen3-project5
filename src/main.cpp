@@ -14,6 +14,12 @@
 
 using namespace vex;
 
+static double max_speed = 100;
+
+static void toggle_max_speed() {
+  max_speed = (max_speed == 100.0) ? 40.0 : 100.0;
+}
+
 /*---------------------------------------------------------------------------*/
 /*                          Pre-Autonomous Functions                         */
 /*                                                                           */
@@ -48,7 +54,7 @@ void pre_auton(void) {
 
 void autonomous(void) {
   double start_time = bot::Brain.Timer.time(vex::msec);
-  bot::autons::sawp();
+  bot::autons::skills();
   double end_time = bot::Brain.Timer.time(vex::msec);
   bot::Controller1.Screen.setCursor(2,1);
   bot::Controller1.Screen.print("end time: %.1f", end_time);
@@ -100,7 +106,7 @@ void usercontrol(void) {
   bot::Controller1.ButtonY.released(bot::buttons::ButtonY_released);
 
   bot::Controller1.ButtonLeft.pressed(bot::buttons::ButtonLeft);
-  bot::Controller1.ButtonRight.pressed(bot::buttons::ButtonRight);
+  bot::Controller1.ButtonRight.pressed(toggle_max_speed);
   bot::Controller1.ButtonDown.pressed(bot::buttons::ButtonDown);
   bot::Controller1.ButtonUp.pressed(bot::buttons::ButtonUp);
   
@@ -130,8 +136,8 @@ void usercontrol(void) {
     left = (leftY < 0) ? -left_joystick : left_joystick;
     right = (rightY < 0) ? -right_joystick : right_joystick;
 
-    left = math::clamp(left, -100, 100);
-    right = math::clamp(right, -100, 100);
+    left = math::clamp(left, -max_speed, max_speed);
+    right = math::clamp(right, -max_speed, max_speed);
 
     bot::drivetrains::dt.tank_drive(left, right);
 
