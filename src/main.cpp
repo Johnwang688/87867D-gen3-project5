@@ -106,7 +106,7 @@ void usercontrol(void) {
   bot::Controller1.ButtonY.released(bot::buttons::ButtonY_released);
 
   bot::Controller1.ButtonLeft.pressed(bot::buttons::ButtonLeft);
-  bot::Controller1.ButtonRight.pressed(toggle_max_speed);
+  bot::Controller1.ButtonRight.pressed(bot::buttons::ButtonRight);
   bot::Controller1.ButtonDown.pressed(bot::buttons::ButtonDown);
   bot::Controller1.ButtonUp.pressed(bot::buttons::ButtonUp);
   
