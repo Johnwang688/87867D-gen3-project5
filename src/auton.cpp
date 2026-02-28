@@ -420,7 +420,7 @@ namespace bot {
             double heading_correct;
             if (left_distance == 9999 || left_distance <= 0) heading_correct = 0.0;
             else if (left_distance < 300) heading_correct = (400 - left_distance) * 0.07;
-            else heading_correct = (850 - left_distance) * 0.07;
+            else heading_correct = (900 - left_distance) * 0.07;
             vex::task::sleep(50);
             dt.drive(650, 1500, 60, 100+heading_correct);
             dt.drive_for(450 - (10.0*heading_correct), 1000, 50, 100+heading_correct);
