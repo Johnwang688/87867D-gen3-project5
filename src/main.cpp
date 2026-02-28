@@ -108,7 +108,7 @@ void usercontrol(void) {
   bot::Controller1.ButtonLeft.pressed(bot::buttons::ButtonLeft);
   bot::Controller1.ButtonRight.pressed(toggle_max_speed);
   bot::Controller1.ButtonDown.pressed(bot::buttons::ButtonDown);
-  bot::Controller1.ButtonUp.pressed(bot::buttons::ButtonUp);
+  bot::Controller1.ButtonUp.pressed(bot::autons::test);
   
   // variables for driver control
   double leftY, leftX, rightY, rightX;

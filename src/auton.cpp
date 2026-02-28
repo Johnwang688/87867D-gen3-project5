@@ -420,7 +420,7 @@ namespace bot {
             double heading_correct;
             if (left_distance == 9999 || left_distance <= 0) heading_correct = 0.0;
             else if (left_distance < 300) heading_correct = (400 - left_distance) * 0.07;
-            else heading_correct = (850 - left_distance) * 0.07;
+            else heading_correct = (900 - left_distance) * 0.07;
             vex::task::sleep(50);
             dt.drive(650, 1500, 60, 100+heading_correct);
             dt.drive_for(450 - (10.0*heading_correct), 1000, 50, 100+heading_correct);
@@ -456,7 +456,7 @@ namespace bot {
             double right_distance = bot::sensors::right_dist.objectDistance(vex::mm);
             double heading_correct_2;
             if (right_distance == 9999 || right_distance <= 0) heading_correct_2 = 0.0;
-            else heading_correct_2 = (600 - right_distance);
+            else heading_correct_2 = (650 - right_distance);
             dt.drive(-250 - sqrt(2.0)*heading_correct_2, 1500, 40, -45);
             dt.drive(-350, 1000, 40, -45);
             bot::pistons::match_load_piston.set(false);
@@ -483,7 +483,7 @@ namespace bot {
             double dsr_distance;
             if (left_distance_2 == 9999 || left_distance_2 <= 0) dsr_distance = 350.0;
             else if (left_distance_2 < 700.0) dsr_distance = left_distance_2 - 200.0;
-            else dsr_distance = left_distance_2 - 650.0;
+            else dsr_distance = left_distance_2 - 700.0;
             bot::pistons::match_load_piston.set(true);
             dt.drive(400, 1500, 50, 20);
             dt.drive(dsr_distance, 1200, 60, 20);
@@ -603,12 +603,13 @@ namespace bot {
         }
 
         void test() {
-            bot::motors::lower.spin(vex::forward, 100, vex::percent);
-            bot::pistons::arm_piston.set(true);
-            dt.drive_to({
-                {bot::fwd, 200, 400, 35, 800},
-                {bot::fwd, 600, 200, -90, 1000}
-            }, 100);
+            double right_distance = bot::sensors::right_dist.objectDistance(vex::mm);
+            double left_distance = bot::sensors::left_dist.objectDistance(vex::mm);
+            bot::Controller1.Screen.clearScreen();
+            bot::Controller1.Screen.setCursor(1,1);
+            bot::Controller1.Screen.print("R: %f", right_distance);
+            bot::Controller1.Screen.setCursor(2,1);
+            bot::Controller1.Screen.print("L: %f", left_distance);
             return;
         }
     }

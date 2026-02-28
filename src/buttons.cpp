@@ -45,7 +45,8 @@ namespace bot {
         using namespace bot::motors;
         using namespace vex;
         void intake(){
-            lower.spin(forward, 100, percent);
+            double lower_speed = (bot::mid_scoring_status) ? 100.0 : 70.0;
+            lower.spin(forward, lower_speed, percent);
         }
         void stop_intaking(){
             lower.stop();
@@ -68,7 +69,7 @@ namespace bot {
 
         void score_middle(){
             bot::mid_scoring_status = true;
-            mid.spin(reverse, 100.0, percent); 
+            mid.spin(reverse, 5.5, vex::voltageUnits::volt); 
         }
 
         void stop_scoring_middle(){
