@@ -307,6 +307,7 @@ namespace bot {
             bot::pistons::match_load_piston.set(true);
             dt.drive_for(200, 400, 40, 0);
             vex::task mid_scoring_task = vex::task([]() -> int {
+                vex::task::sleep(150);
                 bot::motors::lower.spin(vex::reverse, 4.0, vex::volt);
                 vex::task::sleep(500);
                 bot::motors::lower.spin(vex::forward, 8.0, vex::volt);
@@ -319,15 +320,22 @@ namespace bot {
                 dt.turn_to_heading(-45, 1000, 50);
                 return 0;
             });
-            vex::task::sleep(1500);
+            vex::task::sleep(500);
+            dt.drive(-500, 500, 20, -45);
+            vex::task::sleep(500);
             bot::motors::mid.stop();
             bot::motors::lower.spin(vex::forward, 100, vex::percent);
             dt.coast();
             dt.drive(200, 500, 40, -45);
-            dt.drive(850, 1500, 80, -45);
+            dt.drive(600, 1500, 70, -45);
+            dt.drive(250, 800, 50, -45);
             bot::pistons::match_load_piston.set(true);
             dt.drive(850, 1200, 50, -90);
-            dt.drive(-200, 700, 35, -90);
+            double right_distance = bot::sensors::right_dist.objectDistance(vex::mm);
+            double heading_correct;
+            if (right_distance == 9999 || right_distance <= 0) heading_correct = 0.0;
+            else heading_correct = (450 - right_distance) * 0.05;
+            dt.drive(-200, 700, 35, -90 - heading_correct);
             dt.drive(-500, 1000, 60, -90);
             bot::motors::intake.spin(vex::forward, 100, vex::percent);
             dt.brake();
