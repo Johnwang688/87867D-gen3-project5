@@ -55,16 +55,17 @@ constexpr double A = 2.0;
 constexpr double B = 1.055;
 constexpr double C = -A;
 
-// Particle filter constants
-constexpr std::uint8_t LAYERS = 8;
-constexpr std::uint16_t INITIAL_STEP_SIZE = 400;  // Reduced for precision
-constexpr std::uint16_t MAX_PARTICLES = 22 * (LAYERS-1);
+// MCL particle filter constants
+constexpr int MCL_NUM_PARTICLES = 200;
 
-// park zone particles
-constexpr std::int16_t RED_PARK_ZONE_X = -1500;
-constexpr std::int16_t RED_PARK_ZONE_Y = 0;
-constexpr std::int16_t BLUE_PARK_ZONE_X = 1500;
-constexpr std::int16_t BLUE_PARK_ZONE_Y = 0;
+// MCL sensor positions in robot body frame (mm)
+// Body frame: +X = right, +Y = forward, origin at robot center
+constexpr float LEFT_SENSOR_BODY_X  = -135.0f;
+constexpr float LEFT_SENSOR_BODY_Y  =   88.0f;
+constexpr float RIGHT_SENSOR_BODY_X =  146.0f;
+constexpr float RIGHT_SENSOR_BODY_Y =   92.0f;
+constexpr float BACK_SENSOR_BODY_X  =    0.0f;
+constexpr float BACK_SENSOR_BODY_Y  = -130.0f;
 
 // Robot dimensions and offsets (in mm)
 constexpr std::int16_t LEFT_FORWARD_OFFSET_X = -135;
@@ -118,3 +119,5 @@ constexpr Line map[] = {
     //{-510,1200,-600,1130}, {-510,1200,-600,1270},
 
 };
+
+constexpr int MAP_LINE_COUNT = sizeof(map) / sizeof(map[0]);

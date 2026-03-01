@@ -11,7 +11,7 @@ namespace bot {
     }
 
     namespace mcl {
-        //extern bot::Location location;
+        extern bot::Location location;
     }
 
     namespace autons {

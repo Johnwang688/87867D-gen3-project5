@@ -7,7 +7,7 @@ namespace bot {
     }
 
     namespace mcl {
-        //bot::Location location;
+        bot::Location location;
     }
 
     namespace autons {

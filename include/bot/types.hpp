@@ -8,15 +8,9 @@ struct Line {
 };
 
 struct Particle {
-    std::int16_t x, y, heading;
-    std::uint16_t front_left, front_right, back_left, back_right, 
-    left_forward, left_aft, right_forward, right_aft;
-    bool valid;
-};
-
-struct Reading {
-    std::uint16_t front_left, front_right, back_left, back_right,
-    left_forward, left_aft, right_forward, right_aft;
+    float x, y;       // position in mm (field frame, origin at center)
+    float heading;     // degrees, CCW positive, +X = 0 (math convention)
+    float weight;
 };
 
 struct Pose {
