@@ -53,12 +53,12 @@ const double B = 1.055;
 const double C = -A;
 
 // MCL sensor positions in robot body frame (mm)
-const float LEFT_SENSOR_BODY_X  = -135.0f;
-const float LEFT_SENSOR_BODY_Y  =   88.0f;
-const float RIGHT_SENSOR_BODY_X =  146.0f;
-const float RIGHT_SENSOR_BODY_Y =   92.0f;
-const float BACK_SENSOR_BODY_X  =    0.0f;
-const float BACK_SENSOR_BODY_Y  = -130.0f;
+const float LEFT_SENSOR_BODY_X  = -141.0f;
+const float LEFT_SENSOR_BODY_Y  =   10.0f;
+const float RIGHT_SENSOR_BODY_X =  135.0f;
+const float RIGHT_SENSOR_BODY_Y =   -30.0f;
+const float BACK_SENSOR_BODY_X  =  100.0f;
+const float BACK_SENSOR_BODY_Y  = -134.0f;
 
 // Robot dimensions and offsets (in mm)
 const std::int16_t LEFT_FORWARD_OFFSET_X = -135;
