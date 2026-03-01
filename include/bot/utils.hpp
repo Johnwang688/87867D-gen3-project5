@@ -4,6 +4,13 @@
 #include "bot/robot_config.hpp"
 #include <algorithm>
 #include <cmath>
+/*
+note to self:
+vex::timer::system() return time in msec 
+vex::timer::systemHighResolution() return time in micro sec if need extra accuracy
+
+*/
+
 
 namespace helpers {
 
