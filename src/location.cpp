@@ -18,6 +18,9 @@ static int location_task_fn() {
 
 namespace bot {
 
+const float Location::FIELD_HALF_X = WIDTH  / 2.0f;
+const float Location::FIELD_HALF_Y = HEIGHT / 2.0f;
+
 const Location::SensorConfig Location::SENSORS[3] = {
     { LEFT_SENSOR_BODY_X,  LEFT_SENSOR_BODY_Y,  -1.0f,  0.0f },
     { RIGHT_SENSOR_BODY_X, RIGHT_SENSOR_BODY_Y,  1.0f,  0.0f },
@@ -37,6 +40,8 @@ Location::Location()
 }
 
 void Location::reset(float x, float y, float heading_deg) {
+    _state_mutex.lock();
+
     _rng_state = static_cast<uint32_t>(bot::Brain.Timer.time(vex::msec));
     if (_rng_state == 0) _rng_state = 0xDEADBEEF;
 
@@ -50,13 +55,17 @@ void Location::reset(float x, float y, float heading_deg) {
         _particles[i].weight  = w;
     }
 
+    _pose_mutex.lock();
     _pose.x       = static_cast<double>(x);
     _pose.y       = static_cast<double>(y);
     _pose.heading  = static_cast<double>(heading_deg);
+    _pose_mutex.unlock();
 
     _last_left_enc   = bot::motors::left_dt.position(vex::degrees);
     _last_right_enc  = bot::motors::right_dt.position(vex::degrees);
     _last_imu_heading = bot::sensors::imu.heading(vex::degrees);
+
+    _state_mutex.unlock();
 }
 
 void Location::start() {
@@ -82,11 +91,16 @@ void Location::stop() {
 }
 
 Pose Location::get_pose() const {
-    return _pose;
+    _pose_mutex.lock();
+    Pose p = _pose;
+    _pose_mutex.unlock();
+    return p;
 }
 
 
 void Location::update() {
+    _state_mutex.lock();
+
     double left_enc   = bot::motors::left_dt.position(vex::degrees);
     double right_enc  = bot::motors::right_dt.position(vex::degrees);
     double imu_heading = bot::sensors::imu.heading(vex::degrees);
@@ -99,6 +113,7 @@ void Location::update() {
         _last_left_enc    = left_enc;
         _last_right_enc   = right_enc;
         _last_imu_heading = imu_heading;
+        _state_mutex.unlock();
         return;
     }
 
@@ -115,11 +130,15 @@ void Location::update() {
     predict(d_center_mm, d_heading);
     weight_particles();
 
+    _pose_mutex.lock();
     _pose = compute_estimate();
+    _pose_mutex.unlock();
 
     _last_left_enc    = left_enc;
     _last_right_enc   = right_enc;
     _last_imu_heading = imu_heading;
+
+    _state_mutex.unlock();
 }
 
 
@@ -259,15 +278,15 @@ void Location::resample() {
     float n_eff = 1.0f / sum_sq;
     if (n_eff >= NEFF_RATIO * NUM_PARTICLES) return;
 
+    int num_resamp = NUM_PARTICLES - NUM_PARTICLES / 20;
+    float step = 1.0f / num_resamp;
     float inv_n = 1.0f / NUM_PARTICLES;
-    float r = rand_uniform() * inv_n;
+    float r = rand_uniform() * step;
     float c = _particles[0].weight;
     int   j = 0;
 
-    int num_resamp = NUM_PARTICLES - NUM_PARTICLES / 20;
-
     for (int i = 0; i < num_resamp; i++) {
-        float u = r + i * inv_n;
+        float u = r + i * step;
         while (u > c && j < NUM_PARTICLES - 1) {
             j++;
             c += _particles[j].weight;
@@ -276,14 +295,19 @@ void Location::resample() {
         _resample_buf[i].weight = inv_n;
     }
 
+    Pose pose_snapshot;
+    _pose_mutex.lock();
+    pose_snapshot = _pose;
+    _pose_mutex.unlock();
+
     // 5 % exploration particles near current estimate to resist depletion
     for (int i = num_resamp; i < NUM_PARTICLES; i++) {
-        _resample_buf[i].x = static_cast<float>(_pose.x)
+        _resample_buf[i].x = static_cast<float>(pose_snapshot.x)
                             + gaussian_noise(30.0f);
-        _resample_buf[i].y = static_cast<float>(_pose.y)
+        _resample_buf[i].y = static_cast<float>(pose_snapshot.y)
                             + gaussian_noise(30.0f);
         _resample_buf[i].heading = wrap_heading(
-            static_cast<float>(_pose.heading) + gaussian_noise(3.0f));
+            static_cast<float>(pose_snapshot.heading) + gaussian_noise(3.0f));
         _resample_buf[i].weight = inv_n;
 
         if (_resample_buf[i].x < -FIELD_HALF_X + 1.0f)
@@ -322,7 +346,9 @@ Pose Location::compute_estimate() const {
         p.y       = static_cast<double>(sy * inv);
         p.heading  = static_cast<double>(atan2f(ss, sc) * RAD_TO_DEG);
     } else {
+        _pose_mutex.lock();
         p = _pose;
+        _pose_mutex.unlock();
     }
     return p;
 }

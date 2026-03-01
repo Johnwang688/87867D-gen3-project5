@@ -31,8 +31,8 @@ private:
     static constexpr float ENCODER_JUMP_THRESH = 500.0f;
     static constexpr float DEG_TO_RAD = 3.14159265358979f / 180.0f;
     static constexpr float RAD_TO_DEG = 180.0f / 3.14159265358979f;
-    static constexpr float FIELD_HALF_X = WIDTH  / 2.0f;
-    static constexpr float FIELD_HALF_Y = HEIGHT / 2.0f;
+    static const float FIELD_HALF_X;
+    static const float FIELD_HALF_Y;
 
     struct SensorConfig {
         float body_x, body_y;   // position in body frame (mm)
@@ -52,6 +52,8 @@ private:
     volatile bool _running;
     vex::task*    _task;
     uint32_t      _rng_state;
+    mutable vex::mutex _state_mutex;
+    mutable vex::mutex _pose_mutex;
 
     void predict(float d_center_mm, float d_heading_deg);
     void weight_particles();
