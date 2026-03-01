@@ -29,6 +29,8 @@ private:
     static constexpr float NEFF_RATIO         = 0.5f;
     static constexpr float MIN_SENSOR_READING = 20.0f;
     static constexpr float ENCODER_JUMP_THRESH = 500.0f;
+    static constexpr float ALPHA_SLOW         = 0.005f;
+    static constexpr float ALPHA_FAST         = 0.1f;
     static constexpr float DEG_TO_RAD = 3.14159265358979f / 180.0f;
     static constexpr float RAD_TO_DEG = 180.0f / 3.14159265358979f;
     static const float FIELD_HALF_X;
@@ -50,8 +52,11 @@ private:
     double _last_imu_heading;
 
     volatile bool _running;
+    bool          _full_update_cycle;
     vex::task*    _task;
     uint32_t      _rng_state;
+    float         _w_slow;
+    float         _w_fast;
     mutable vex::mutex _state_mutex;
     mutable vex::mutex _pose_mutex;
 

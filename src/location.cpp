@@ -9,8 +9,11 @@ namespace {
 
 static int location_task_fn() {
     while (s_instance && s_instance->is_running()) {
+        uint32_t start = bot::Brain.Timer.time(vex::msec);
         s_instance->update();
-        vex::task::sleep(20);
+        uint32_t elapsed = bot::Brain.Timer.time(vex::msec) - start;
+        if (elapsed < 20)
+            vex::task::sleep(20 - elapsed);
     }
     return 0;
 }
@@ -31,8 +34,8 @@ const Location::SensorConfig Location::SENSORS[3] = {
 Location::Location()
     : _pose{0.0, 0.0, 0.0},
       _last_left_enc(0.0), _last_right_enc(0.0), _last_imu_heading(0.0),
-      _running(false), _task(nullptr),
-      _rng_state(0xDEADBEEF)
+      _running(false), _full_update_cycle(true), _task(nullptr),
+      _rng_state(0xDEADBEEF), _w_slow(0.0f), _w_fast(0.0f)
 {
     float w = 1.0f / NUM_PARTICLES;
     for (int i = 0; i < NUM_PARTICLES; i++)
@@ -61,9 +64,13 @@ void Location::reset(float x, float y, float heading_deg) {
     _pose.heading  = static_cast<double>(heading_deg);
     _pose_mutex.unlock();
 
-    _last_left_enc   = bot::motors::left_dt.position(vex::degrees);
-    _last_right_enc  = bot::motors::right_dt.position(vex::degrees);
+    _w_slow = 0.0f;
+    _w_fast = 0.0f;
+
+    _last_left_enc    = bot::motors::left_dt.position(vex::degrees);
+    _last_right_enc   = bot::motors::right_dt.position(vex::degrees);
     _last_imu_heading = bot::sensors::imu.heading(vex::degrees);
+    _full_update_cycle = true;
 
     _state_mutex.unlock();
 }
@@ -72,6 +79,7 @@ void Location::start() {
     if (_running) return;
     s_instance = this;
     _running   = true;
+    _full_update_cycle = true;
 
     _last_left_enc    = bot::motors::left_dt.position(vex::degrees);
     _last_right_enc   = bot::motors::right_dt.position(vex::degrees);
@@ -126,17 +134,23 @@ void Location::update() {
     if (d_imu < -180.0f) d_imu += 360.0f;
     float d_heading = -d_imu;   // negate: VEX CW → math CCW
 
-    resample();
-    predict(d_center_mm, d_heading);
-    weight_particles();
+    if (_full_update_cycle)
+        resample();
 
+    predict(d_center_mm, d_heading);
+
+    if (_full_update_cycle)
+        weight_particles();
+
+    Pose new_pose = compute_estimate();
     _pose_mutex.lock();
-    _pose = compute_estimate();
+    _pose = new_pose;
     _pose_mutex.unlock();
 
     _last_left_enc    = left_enc;
     _last_right_enc   = right_enc;
     _last_imu_heading = imu_heading;
+    _full_update_cycle = !_full_update_cycle;
 
     _state_mutex.unlock();
 }
@@ -257,6 +271,10 @@ void Location::weight_particles() {
         sum_w += _particles[i].weight;
     }
 
+    float w_avg = sum_w / NUM_PARTICLES;
+    _w_slow += ALPHA_SLOW * (w_avg - _w_slow);
+    _w_fast += ALPHA_FAST * (w_avg - _w_fast);
+
     if (sum_w > 1e-30f) {
         float inv = 1.0f / sum_w;
         for (int i = 0; i < NUM_PARTICLES; i++)
@@ -274,50 +292,50 @@ void Location::resample() {
     for (int i = 0; i < NUM_PARTICLES; i++)
         sum_sq += _particles[i].weight * _particles[i].weight;
 
+    // Augmented MCL: probability of injecting random particles
+    float p_random = 0.0f;
+    if (_w_slow > 1e-30f)
+        p_random = fmaxf(0.0f, 1.0f - _w_fast / _w_slow);
+
     if (sum_sq < 1e-30f) return;
     float n_eff = 1.0f / sum_sq;
-    if (n_eff >= NEFF_RATIO * NUM_PARTICLES) return;
 
-    int num_resamp = NUM_PARTICLES - NUM_PARTICLES / 20;
-    float step = 1.0f / num_resamp;
+    // Resample when Neff drops or when augmented MCL wants random injection
+    if (p_random < 1e-6f && n_eff >= NEFF_RATIO * NUM_PARTICLES) return;
+
+    int num_random = static_cast<int>(p_random * NUM_PARTICLES);
+    if (num_random > NUM_PARTICLES) num_random = NUM_PARTICLES;
+    int num_resamp = NUM_PARTICLES - num_random;
+
     float inv_n = 1.0f / NUM_PARTICLES;
-    float r = rand_uniform() * step;
-    float c = _particles[0].weight;
-    int   j = 0;
 
-    for (int i = 0; i < num_resamp; i++) {
-        float u = r + i * step;
-        while (u > c && j < NUM_PARTICLES - 1) {
-            j++;
-            c += _particles[j].weight;
+    // Systematic low-variance resampling for the retained portion
+    if (num_resamp > 0) {
+        float step = 1.0f / num_resamp;
+        float r = rand_uniform() * step;
+        float c = _particles[0].weight;
+        int   j = 0;
+
+        for (int i = 0; i < num_resamp; i++) {
+            float u = r + i * step;
+            while (u > c && j < NUM_PARTICLES - 1) {
+                j++;
+                c += _particles[j].weight;
+            }
+            _resample_buf[i]        = _particles[j];
+            _resample_buf[i].weight = inv_n;
         }
-        _resample_buf[i]        = _particles[j];
-        _resample_buf[i].weight = inv_n;
     }
 
-    Pose pose_snapshot;
-    _pose_mutex.lock();
-    pose_snapshot = _pose;
-    _pose_mutex.unlock();
-
-    // 5 % exploration particles near current estimate to resist depletion
+    // Inject random particles uniformly across the whole field
     for (int i = num_resamp; i < NUM_PARTICLES; i++) {
-        _resample_buf[i].x = static_cast<float>(pose_snapshot.x)
-                            + gaussian_noise(30.0f);
-        _resample_buf[i].y = static_cast<float>(pose_snapshot.y)
-                            + gaussian_noise(30.0f);
+        _resample_buf[i].x       = (rand_uniform() - 0.5f) * 2.0f
+                                    * (FIELD_HALF_X - 1.0f);
+        _resample_buf[i].y       = (rand_uniform() - 0.5f) * 2.0f
+                                    * (FIELD_HALF_Y - 1.0f);
         _resample_buf[i].heading = wrap_heading(
-            static_cast<float>(pose_snapshot.heading) + gaussian_noise(3.0f));
-        _resample_buf[i].weight = inv_n;
-
-        if (_resample_buf[i].x < -FIELD_HALF_X + 1.0f)
-            _resample_buf[i].x = -FIELD_HALF_X + 1.0f;
-        if (_resample_buf[i].x >  FIELD_HALF_X - 1.0f)
-            _resample_buf[i].x =  FIELD_HALF_X - 1.0f;
-        if (_resample_buf[i].y < -FIELD_HALF_Y + 1.0f)
-            _resample_buf[i].y = -FIELD_HALF_Y + 1.0f;
-        if (_resample_buf[i].y >  FIELD_HALF_Y - 1.0f)
-            _resample_buf[i].y =  FIELD_HALF_Y - 1.0f;
+                                    (rand_uniform() - 0.5f) * 360.0f);
+        _resample_buf[i].weight  = inv_n;
     }
 
     std::memcpy(_particles, _resample_buf, sizeof(_particles));
@@ -346,9 +364,7 @@ Pose Location::compute_estimate() const {
         p.y       = static_cast<double>(sy * inv);
         p.heading  = static_cast<double>(atan2f(ss, sc) * RAD_TO_DEG);
     } else {
-        _pose_mutex.lock();
         p = _pose;
-        _pose_mutex.unlock();
     }
     return p;
 }

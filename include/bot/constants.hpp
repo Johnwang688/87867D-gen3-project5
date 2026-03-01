@@ -53,7 +53,7 @@ extern const double B;
 extern const double C;
 
 // MCL particle filter constants
-constexpr int MCL_NUM_PARTICLES = 200;
+constexpr int MCL_NUM_PARTICLES = 500;
 
 // MCL sensor positions in robot body frame (mm)
 // Body frame: +X = right, +Y = forward, origin at robot center
