@@ -37,8 +37,8 @@ private:
     static const float FIELD_HALF_Y;
 
     struct SensorConfig {
-        float body_x, body_y;   // position in body frame (mm)
-        float dir_x,  dir_y;    // unit ray direction in body frame
+        float body_x, body_y;   // position on robot body
+        float dir_x,  dir_y;    // ray direction in body frame
     };
 
     static const SensorConfig SENSORS[3];

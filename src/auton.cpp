@@ -601,12 +601,7 @@ namespace bot {
         }
 
         void test() {
-            bot::motors::lower.spin(vex::forward, 100, vex::percent);
-            bot::pistons::arm_piston.set(true);
-            dt.drive_to({
-                {bot::fwd, 200, 400, 35, 800},
-                {bot::fwd, 600, 200, -90, 1000}
-            }, 100);
+            dt.drive_for(600, 2000, 30, 0);
             return;
         }
 

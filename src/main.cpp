@@ -11,6 +11,7 @@
 #include "bot/bot.hpp"
 #include "buttons.hpp"
 #include "auton.hpp"
+#include "bot/debug.hpp"
 
 using namespace vex;
 
@@ -53,8 +54,13 @@ void pre_auton(void) {
 /*---------------------------------------------------------------------------*/
 
 void autonomous(void) {
+  bot::mcl::location.reset(300, -1200, 0);
+  bot::mcl::location.start();
   double start_time = bot::Brain.Timer.time(vex::msec);
-  bot::autons::left_4_3();
+  vex::task debug_task = vex::task(debug::location_debug_task_fn);
+  bot::autons::test();
+  bot::mcl::location.stop();
+  debug_task.stop();
   double end_time = bot::Brain.Timer.time(vex::msec);
   bot::Controller1.Screen.setCursor(2,1);
   bot::Controller1.Screen.print("end time: %.1f", end_time);
