@@ -602,6 +602,11 @@ namespace bot {
 
         void test() {
             dt.drive_for(600, 2000, 30, 0);
+            dt.drive_for(-300, 2000, 30, 0);
+            dt.drive(300, 1500, 30, 90);
+            dt.drive_for(200, 1000, 30, 90);
+            dt.turn_to_heading(0, 1000, 40);
+            dt.drive_for(1500, 2500, 40, 0);
             return;
         }
 

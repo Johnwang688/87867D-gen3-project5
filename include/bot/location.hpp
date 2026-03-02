@@ -31,6 +31,7 @@ private:
     static constexpr float ENCODER_JUMP_THRESH = 500.0f;
     static constexpr float ALPHA_SLOW         = 0.005f;
     static constexpr float ALPHA_FAST         = 0.1f;
+    static constexpr float IMU_BLEND          = 1.0f;
     static constexpr float DEG_TO_RAD = 3.14159265358979f / 180.0f;
     static constexpr float RAD_TO_DEG = 180.0f / 3.14159265358979f;
     static const float FIELD_HALF_X;
@@ -71,8 +72,8 @@ private:
                               float bx, float by,
                               float rx, float ry,
                               float& wx, float& wy) const {
-        wx = rx + bx * sin_h + by * cos_h;
-        wy = ry - bx * cos_h + by * sin_h;
+        wx = rx + bx * cos_h - by * sin_h;
+        wy = ry + bx * sin_h + by * cos_h;
     }
 
     float rand_uniform();

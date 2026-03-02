@@ -9,7 +9,7 @@ struct Line {
 
 struct Particle {
     float x, y;       // position in mm (field frame, origin at center)
-    float heading;     // degrees, CCW positive, +X = 0 (math convention)
+    float heading;     // degrees, CCW positive, +Y = 0 (IMU convention)
     float weight;
 };
 
@@ -38,4 +38,7 @@ struct Waypoint {
     double time;
 };
 
+struct PathPoint {
+    double x, y;
+};
 

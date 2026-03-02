@@ -54,7 +54,8 @@ void pre_auton(void) {
 /*---------------------------------------------------------------------------*/
 
 void autonomous(void) {
-  bot::mcl::location.reset(300, -1200, 0);
+  printf("---\n");
+  bot::mcl::location.reset(400, -1200, 0);
   bot::mcl::location.start();
   double start_time = bot::Brain.Timer.time(vex::msec);
   vex::task debug_task = vex::task(debug::location_debug_task_fn);

@@ -48,7 +48,7 @@ void Location::reset(float x, float y, float heading_deg) {
     _rng_state = static_cast<uint32_t>(bot::Brain.Timer.time(vex::msec));
     if (_rng_state == 0) _rng_state = 0xDEADBEEF;
 
-    bot::sensors::imu.set_heading_math(static_cast<double>(heading_deg));
+    bot::sensors::imu.set_heading_math(static_cast<double>(heading_deg) + 90.0);
 
     float w = 1.0f / NUM_PARTICLES;
     for (int i = 0; i < NUM_PARTICLES; i++) {
@@ -132,7 +132,13 @@ void Location::update() {
     float d_imu = static_cast<float>(imu_heading - _last_imu_heading);
     if (d_imu >  180.0f) d_imu -= 360.0f;
     if (d_imu < -180.0f) d_imu += 360.0f;
-    float d_heading = -d_imu;   // negate: VEX CW → math CCW
+    float d_heading_imu = -d_imu;
+
+    float d_heading_odom = (d_right_mm - d_left_mm)
+                           / static_cast<float>(TRACK_WIDTH) * RAD_TO_DEG;
+
+    float d_heading = IMU_BLEND * d_heading_imu
+                    + (1.0f - IMU_BLEND) * d_heading_odom;
 
     if (_full_update_cycle)
         resample();
@@ -179,8 +185,8 @@ void Location::predict(float d_center_mm, float d_heading_deg) {
         float sin_h   = sinf(avg_rad);
         float d       = d_center_mm + nt;
 
-        _particles[i].x += d * cos_h - nl * sin_h;
-        _particles[i].y += d * sin_h + nl * cos_h;
+        _particles[i].x += -d * sin_h - nl * cos_h;
+        _particles[i].y +=  d * cos_h - nl * sin_h;
         _particles[i].heading = wrap_heading(
             _particles[i].heading + d_heading_deg + nr);
 
@@ -249,8 +255,8 @@ void Location::weight_particles() {
                           SENSORS[s].body_x, SENSORS[s].body_y,
                           px, py, wx, wy);
 
-            float dx_w = SENSORS[s].dir_x * sin_h + SENSORS[s].dir_y * cos_h;
-            float dy_w = -SENSORS[s].dir_x * cos_h + SENSORS[s].dir_y * sin_h;
+            float dx_w = SENSORS[s].dir_x * cos_h - SENSORS[s].dir_y * sin_h;
+            float dy_w = SENSORS[s].dir_x * sin_h + SENSORS[s].dir_y * cos_h;
 
             float expected = raycast_single(wx, wy, dx_w, dy_w);
             float error    = readings[s] - expected;
