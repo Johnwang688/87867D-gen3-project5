@@ -39,6 +39,7 @@ struct Waypoint {
 };
 
 struct PathPoint {
-    double x, y;
+    double x, y;            // position in mm (field frame, origin at center)
+    std::int8_t direction;  // +1 = forward, -1 = reverse
 };
 

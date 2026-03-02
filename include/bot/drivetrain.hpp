@@ -27,6 +27,10 @@ class Drivetrain {
         void drive_arc(double radius, double angle, double timeout, double speed_limit, double lookahead);
 
         void drive_to(std::vector<Waypoint> waypoints, double speed_limit);
+
+        // All distances in mm.  base_speed is a percentage (0-100).
+        void pure_pursuit(const std::vector<PathPoint>& path, double lookahead_dist,
+                          double base_speed, double timeout);
     private:
         vex::motor_group& _left_dt;
         vex::motor_group& _right_dt;

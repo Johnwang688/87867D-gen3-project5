@@ -199,6 +199,104 @@ void Drivetrain::drive_arc(double radius, double angle, double timeout, double s
     coast();
 }
 
+namespace mcl { extern bot::Location location; }
+
+void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahead_dist,
+                              double base_speed, double timeout) {
+    if (path.size() < 2) return;
+
+    double start_time = bot::Brain.Timer.time(vex::msec);
+    const double end_threshold = 30.0; // mm
+    size_t search_start = 0;
+
+    while (bot::Brain.Timer.time(vex::msec) - start_time < timeout) {
+        Pose pose = bot::mcl::location.get_pose();
+
+        // Find closest point forward on path (never backtracks)
+        size_t closest = search_start;
+        double best_dsq = 1e30;
+        for (size_t i = search_start; i < path.size(); i++) {
+            double dx = path[i].x - pose.x;
+            double dy = path[i].y - pose.y;
+            double dsq = dx * dx + dy * dy;
+            if (dsq < best_dsq) {
+                best_dsq = dsq;
+                closest = i;
+            }
+        }
+        search_start = closest;
+
+        // End condition: close enough to final waypoint
+        double dx_end = path.back().x - pose.x;
+        double dy_end = path.back().y - pose.y;
+        if (dx_end * dx_end + dy_end * dy_end < end_threshold * end_threshold) {
+            break;
+        }
+
+        // Lookahead: first point >= Ld away, searching forward from closest
+        size_t la = path.size() - 1;
+        double la_sq = lookahead_dist * lookahead_dist;
+        for (size_t i = closest; i < path.size(); i++) {
+            double dx = path[i].x - pose.x;
+            double dy = path[i].y - pose.y;
+            if (dx * dx + dy * dy >= la_sq) {
+                la = i;
+                break;
+            }
+        }
+
+        // Direction from lookahead point
+        std::int8_t dir = path[la].direction;
+        if (dir != 1 && dir != -1) {
+            dir = 1;
+            printf("PP: invalid direction at idx %d, defaulting to fwd\n", static_cast<int>(la));
+        }
+
+        // Transform lookahead into robot frame
+        // Convention: heading 0° = +Y, CCW positive (MCL convention)
+        // Forward  = (-sin θ, cos θ)
+        // Right    = ( cos θ, sin θ)
+        double dx = path[la].x - pose.x;
+        double dy = path[la].y - pose.y;
+        double theta = math::to_rad(pose.heading);
+        double ct = std::cos(theta);
+        double st = std::sin(theta);
+
+        double x_r =  ct * dx + st * dy;   // lateral  (right positive)
+        double y_r = -st * dx + ct * dy;   // forward
+
+        // Reverse: invert forward axis only
+        if (dir == -1) {
+            y_r = -y_r;
+        }
+
+        // Curvature from lateral offset
+        double Ld_sq = dx * dx + dy * dy;
+        if (Ld_sq < 1.0) Ld_sq = 1.0;
+        double kappa = 2.0 * x_r / Ld_sq;
+
+        // Linear and angular velocity
+        double v = static_cast<double>(dir) * base_speed;
+        double omega = v * kappa;
+
+        // Differential wheel velocities
+        // kappa > 0 → turn right → left wheel faster
+        double v_l = v + omega * _track_width / 2.0;
+        double v_r = v - omega * _track_width / 2.0;
+
+        v_l = math::clamp(v_l, -base_speed, base_speed);
+        v_r = math::clamp(v_r, -base_speed, base_speed);
+
+        _left_dt.spin(vex::forward, v_l * (_max_voltage / 100.0), vex::voltageUnits::volt);
+        _right_dt.spin(vex::forward, v_r * (_max_voltage / 100.0), vex::voltageUnits::volt);
+
+        vex::task::sleep(20);
+    }
+
+    _left_dt.stop();
+    _right_dt.stop();
+}
+
 void Drivetrain::drive_to(std::vector<Waypoint> waypoints, double speed_limit){
     double start_time = bot::Brain.Timer.time(vex::msec);
     const double kF = 50.0;
