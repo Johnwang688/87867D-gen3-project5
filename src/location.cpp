@@ -125,8 +125,8 @@ void Location::update() {
         return;
     }
 
-    float d_left_mm   = d_left  * static_cast<float>(MM_PER_TICK);
-    float d_right_mm  = d_right * static_cast<float>(MM_PER_TICK);
+    float d_left_mm   = helpers::encoderDegreesToMM(d_left); // fixed encoder tick to mm distance conversion bug
+    float d_right_mm  = helpers::encoderDegreesToMM(d_right);
     float d_center_mm = (d_left_mm + d_right_mm) * 0.5f;
 
     float d_imu = static_cast<float>(imu_heading - _last_imu_heading);

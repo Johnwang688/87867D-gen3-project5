@@ -18,6 +18,10 @@ namespace helpers {
         return mm / MM_PER_TICK;
     }
 
+    inline double encoderDegreesToMM(double degrees) {
+        return ((degrees * WHEEL_CIRCUMFERENCE) / 360.0f) * GEAR_RATIO;
+    }
+
     inline double wrapToPi(double angle) {
         while (angle > M_PI) angle -= 2.0 * M_PI;
         while (angle < -M_PI) angle += 2.0 * M_PI;

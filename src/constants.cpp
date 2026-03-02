@@ -35,7 +35,7 @@ const double WHEEL_DIAMETER = 88.25;
 const double TRACK_WIDTH = 300.0;
 const double WHEEL_CIRCUMFERENCE = WHEEL_DIAMETER * PI;
 
-const double GEAR_RATIO = 450.0 / 600.0;
+const double GEAR_RATIO = 450.0 / 600.0; // driving to driven. 
 const double MM_PER_TICK = (WHEEL_CIRCUMFERENCE / 360.0) * GEAR_RATIO;
 
 const double MAX_VOLTAGE = 11.0;
