@@ -601,13 +601,20 @@ namespace bot {
         }
 
         void test() {
-            dt.drive_for(600, 2000, 30, 0);
-            dt.drive_for(-300, 2000, 30, 0);
-            dt.turn_to_heading(90, 1000, 40);
-            dt.drive(200, 1000, 30, 90);
-            bot::pistons::match_load_piston.set(true);
-            dt.drive(500, 1500, 50, 135);
-            dt.drive(600, 1500, 40, 180);
+            std::vector<PathPoint> path = {
+                {500, -1000, 1},
+                {600, -600, 1}
+                
+            };
+            std::vector<PathPoint> path_2 = {
+                {800, -800, 1},
+                {1000, -1000, 1},
+                {1200, -1200, 1},
+                {1200, -1400, 1}
+            };
+            dt.pure_pursuit(path, 200, 30, 10000);
+            dt.turn_to_heading(135, 800, 100);
+            dt.pure_pursuit(path_2, 200, 30, 10000);
             return;
         }
 

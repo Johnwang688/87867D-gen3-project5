@@ -91,8 +91,7 @@ const Line map[] = {
     // 1. Perimeter Walls
     {-WIDTH/2, -HEIGHT/2,  WIDTH/2, -HEIGHT/2}, { WIDTH/2, -HEIGHT/2,  WIDTH/2,  HEIGHT/2},
     { WIDTH/2,  HEIGHT/2, -WIDTH/2,  HEIGHT/2}, {-WIDTH/2,  HEIGHT/2, -WIDTH/2, -HEIGHT/2},
-/*
-    // 2. center goal
+   // 2. center goal
     {-70, 0, 0, -70}, {0, 70, 70, 0}, {-120, -120, 120, 120},
 
     // left long goal
@@ -102,7 +101,7 @@ const Line map[] = {
     // right long goal
     {1200, -510, 1150, -600}, {1200, -510, 1250, -600},
     {1200, 510, 1150, 600}, {1200, 510, 1250, 600},
-*/
+
 };
 
 const int MAP_LINE_COUNT = sizeof(map) / sizeof(map[0]);
