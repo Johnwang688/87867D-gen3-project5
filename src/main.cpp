@@ -54,14 +54,8 @@ void pre_auton(void) {
 /*---------------------------------------------------------------------------*/
 
 void autonomous(void) {
-  printf("---\n");
-  bot::mcl::location.reset(400, -1200, 0);
-  bot::mcl::location.start();
   double start_time = bot::Brain.Timer.time(vex::msec);
-  vex::task debug_task = vex::task(debug::location_debug_task_fn);
-  bot::autons::test();
-  bot::mcl::location.stop();
-  debug_task.stop();
+  bot::autons::skills_80();
   double end_time = bot::Brain.Timer.time(vex::msec);
   bot::Controller1.Screen.setCursor(2,1);
   bot::Controller1.Screen.print("end time: %.1f", end_time);
