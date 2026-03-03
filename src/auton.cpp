@@ -602,19 +602,30 @@ namespace bot {
 
         void test() {
             std::vector<PathPoint> path = {
-                {500, -1000, 1},
+                {600, -900, 1},
                 {600, -600, 1}
                 
             };
             std::vector<PathPoint> path_2 = {
-                {800, -800, 1},
-                {1000, -1000, 1},
-                {1200, -1200, 1},
-                {1200, -1400, 1}
+                {800, -800, -1},
+                {900, -1000, -1},
+                {1200, -1100, -1},
             };
-            dt.pure_pursuit(path, 200, 30, 10000);
-            dt.turn_to_heading(135, 800, 100);
-            dt.pure_pursuit(path_2, 200, 30, 10000);
+            std::vector<PathPoint> path_3 = {
+                {1200, -600, -1}
+            };
+            bot::motors::lower.spin(vex::forward, 100, vex::percent);
+            dt.pure_pursuit(path, 500, 65, 10000);
+            bot::pistons::match_load_piston.set(true);
+            dt.turn_to_heading(-45, 800, 100);
+            dt.pure_pursuit(path_2, 500, 65, 10000);
+            dt.turn_to_heading(180, 800, 100);
+            dt.drive(1000, 1000, 40, 180);
+            dt.drive(-200, 1000, 20, 180);
+            dt.drive(-450, 1000, 60, 180);
+            bot::motors::intake.spin(vex::forward, 100, vex::percent);
+            vex::task::sleep(1500);
+            bot::motors::intake.stop();
             return;
         }
 

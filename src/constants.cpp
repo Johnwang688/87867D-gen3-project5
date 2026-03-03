@@ -25,6 +25,11 @@ const double HEADING_KP = 1.25;
 const double HEADING_KI = 0.05;
 const double HEADING_KD = 0.02;
 
+const double PP_KP = 2.0;
+const double PP_KI = 0.0;
+const double PP_KD = 0.3;
+const double MAX_CORRECTION = 0.6;
+
 const double K_SLOW = 0.40;
 const double MIN_SPEED_PCT = 0.1;
 const double MAX_CURV_SPEED_FACTOR = 0.7;
