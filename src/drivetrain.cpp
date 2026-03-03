@@ -308,11 +308,19 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
                         + (1.0 - min_speed / base_speed) * (dist_to_end / decel_radius);
         }
 
-        double speed = static_cast<double>(dir) * base_speed * speed_scale;
+        // Slow down when turn demand is high to prevent drifting in sharp turns.
+        // turn_ratio: 0 = going straight, 1 = heading PID is saturated.
+        double turn_ratio = (max_correction > 0.0)
+            ? std::min(1.0, std::abs(heading_correction) / max_correction)
+            : 0.0;
+        double turn_speed_scale = 1.0 - (1.0 - MIN_TURN_SPEED_FRAC) * turn_ratio;
+
+        double total_scale = speed_scale * turn_speed_scale;
+        double speed = static_cast<double>(dir) * base_speed * total_scale;
         double left_speed = speed + heading_correction;
         double right_speed = speed - heading_correction;
 
-        double speed_lim = speed * speed_scale;
+        double speed_lim = std::abs(speed) + std::abs(heading_correction);
         left_speed = math::clamp(left_speed, -speed_lim, speed_lim);
         right_speed = math::clamp(right_speed, -speed_lim, speed_lim);
 
