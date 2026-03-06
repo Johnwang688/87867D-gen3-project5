@@ -25,6 +25,12 @@ extern const double HEADING_KP;
 extern const double HEADING_KI;
 extern const double HEADING_KD;
 
+extern const double PP_KP;
+extern const double PP_KI;
+extern const double PP_KD;
+extern const double MAX_CORRECTION;
+extern const double MIN_TURN_SPEED_FRAC;
+
 extern const double K_SLOW;
 extern const double MIN_SPEED_PCT;
 extern const double MAX_CURV_SPEED_FACTOR;

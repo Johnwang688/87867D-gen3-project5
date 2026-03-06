@@ -206,8 +206,30 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
     if (path.size() < 2) return;
 
     double start_time = bot::Brain.Timer.time(vex::msec);
-    const double end_threshold = 30.0; // mm
+    const double end_threshold = 30.0;
+    const double decel_radius = lookahead_dist * 1.5;
+    const double min_speed = 20.0;
     size_t search_start = 0;
+    int settle_count = 0;
+
+    // Heading PID with derivative damping to prevent overshoot oscillation.
+    // The D term acts as a brake on heading rate-of-change.
+    PID pp_heading(PP_KP, PP_KI, PP_KD);
+
+    // Virtual target beyond the last waypoint so the robot always has a
+    // point ahead to steer toward, preventing erratic turns at the end.
+    double ext_x = path.back().x;
+    double ext_y = path.back().y;
+    {
+        size_t n = path.size();
+        double seg_dx = path[n - 1].x - path[n - 2].x;
+        double seg_dy = path[n - 1].y - path[n - 2].y;
+        double seg_len = std::sqrt(seg_dx * seg_dx + seg_dy * seg_dy);
+        if (seg_len > 1.0) {
+            ext_x += (seg_dx / seg_len) * lookahead_dist;
+            ext_y += (seg_dy / seg_len) * lookahead_dist;
+        }
+    }
 
     while (bot::Brain.Timer.time(vex::msec) - start_time < timeout) {
         Pose pose = bot::mcl::location.get_pose();
@@ -216,9 +238,9 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
         size_t closest = search_start;
         double best_dsq = 1e30;
         for (size_t i = search_start; i < path.size(); i++) {
-            double dx = path[i].x - pose.x;
-            double dy = path[i].y - pose.y;
-            double dsq = dx * dx + dy * dy;
+            double dxi = path[i].x - pose.x;
+            double dyi = path[i].y - pose.y;
+            double dsq = dxi * dxi + dyi * dyi;
             if (dsq < best_dsq) {
                 best_dsq = dsq;
                 closest = i;
@@ -226,69 +248,84 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
         }
         search_start = closest;
 
-        // End condition: close enough to final waypoint
         double dx_end = path.back().x - pose.x;
         double dy_end = path.back().y - pose.y;
-        if (dx_end * dx_end + dy_end * dy_end < end_threshold * end_threshold) {
-            break;
+        double dist_to_end = std::sqrt(dx_end * dx_end + dy_end * dy_end);
+
+        if (dist_to_end < end_threshold) {
+            settle_count++;
+            if (settle_count >= 3) break;
+        } else {
+            settle_count = 0;
         }
 
-        // Lookahead: first point >= Ld away, searching forward from closest
+        // Lookahead: first path point >= Ld away from robot.
+        // If every remaining point is inside the lookahead circle, fall
+        // back to the virtual extension point so steering stays stable.
+        double target_x, target_y;
         size_t la = path.size() - 1;
+        bool found_la = false;
         double la_sq = lookahead_dist * lookahead_dist;
         for (size_t i = closest; i < path.size(); i++) {
-            double dx = path[i].x - pose.x;
-            double dy = path[i].y - pose.y;
-            if (dx * dx + dy * dy >= la_sq) {
+            double dxi = path[i].x - pose.x;
+            double dyi = path[i].y - pose.y;
+            if (dxi * dxi + dyi * dyi >= la_sq) {
                 la = i;
+                found_la = true;
                 break;
             }
         }
 
-        // Direction from lookahead point
+        if (found_la) {
+            target_x = path[la].x;
+            target_y = path[la].y;
+        } else {
+            target_x = ext_x;
+            target_y = ext_y;
+        }
+
         std::int8_t dir = path[la].direction;
-        if (dir != 1 && dir != -1) {
-            dir = 1;
-            printf("PP: invalid direction at idx %d, defaulting to fwd\n", static_cast<int>(la));
-        }
+        if (dir != 1 && dir != -1) dir = 1;
 
-        // Transform lookahead into robot frame
-        // Convention: heading 0° = +Y, CCW positive (MCL convention)
-        // Forward  = (-sin θ, cos θ)
-        // Right    = ( cos θ, sin θ)
-        double dx = path[la].x - pose.x;
-        double dy = path[la].y - pose.y;
-        double theta = math::to_rad(pose.heading);
-        double ct = std::cos(theta);
-        double st = std::sin(theta);
-
-        double x_r =  ct * dx + st * dy;   // lateral  (right positive)
-        double y_r = -st * dx + ct * dy;   // forward
-
-        // Reverse: invert forward axis only
+        // Desired heading toward the target (MCL convention: 0°=+Y, CCW+)
+        double dx = target_x - pose.x;
+        double dy = target_y - pose.y;
+        double desired_heading = std::atan2(-dx, dy) * 180.0 / M_PI;
         if (dir == -1) {
-            y_r = -y_r;
+            desired_heading = helpers::wrapTo180(desired_heading + 180.0);
         }
 
-        // Curvature from lateral offset
-        double Ld_sq = dx * dx + dy * dy;
-        if (Ld_sq < 1.0) Ld_sq = 1.0;
-        double kappa = 2.0 * x_r / Ld_sq;
+        // PID heading correction — D term dampens heading rate to kill oscillation
+        double heading_error = helpers::angular_difference(desired_heading, pose.heading);
+        double heading_correction = pp_heading.compute(heading_error, 0.0, 0.02);
+        double max_correction = base_speed * MAX_CORRECTION;
+        heading_correction = math::clamp(heading_correction, -max_correction, max_correction);
 
-        // Linear and angular velocity
-        double v = static_cast<double>(dir) * base_speed;
-        double omega = v * kappa;
+        // Decelerate near the final waypoint
+        double speed_scale = 1.0;
+        if (dist_to_end < decel_radius) {
+            speed_scale = (min_speed / base_speed)
+                        + (1.0 - min_speed / base_speed) * (dist_to_end / decel_radius);
+        }
 
-        // Differential wheel velocities
-        // kappa > 0 → turn right → left wheel faster
-        double v_l = v + omega * _track_width / 2.0;
-        double v_r = v - omega * _track_width / 2.0;
+        // Slow down when turn demand is high to prevent drifting in sharp turns.
+        // turn_ratio: 0 = going straight, 1 = heading PID is saturated.
+        double turn_ratio = (max_correction > 0.0)
+            ? std::min(1.0, std::abs(heading_correction) / max_correction)
+            : 0.0;
+        double turn_speed_scale = 1.0 - (1.0 - MIN_TURN_SPEED_FRAC) * turn_ratio;
 
-        v_l = math::clamp(v_l, -base_speed, base_speed);
-        v_r = math::clamp(v_r, -base_speed, base_speed);
+        double total_scale = speed_scale * turn_speed_scale;
+        double speed = static_cast<double>(dir) * base_speed * total_scale;
+        double left_speed = speed + heading_correction;
+        double right_speed = speed - heading_correction;
 
-        _left_dt.spin(vex::forward, v_l * (_max_voltage / 100.0), vex::voltageUnits::volt);
-        _right_dt.spin(vex::forward, v_r * (_max_voltage / 100.0), vex::voltageUnits::volt);
+        double speed_lim = std::abs(speed) + std::abs(heading_correction);
+        left_speed = math::clamp(left_speed, -speed_lim, speed_lim);
+        right_speed = math::clamp(right_speed, -speed_lim, speed_lim);
+
+        _left_dt.spin(vex::forward, left_speed * (_max_voltage / 100.0), vex::voltageUnits::volt);
+        _right_dt.spin(vex::forward, right_speed * (_max_voltage / 100.0), vex::voltageUnits::volt);
 
         vex::task::sleep(20);
     }
