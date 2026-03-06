@@ -31,6 +31,7 @@ const double PP_KD = 0.3;
 const double MAX_CORRECTION = 0.6;
 const double MIN_TURN_SPEED_FRAC = 0.4;
 
+// unused pp constants (from older version of pp)
 const double K_SLOW = 0.40;
 const double MIN_SPEED_PCT = 0.1;
 const double MAX_CURV_SPEED_FACTOR = 0.7;
