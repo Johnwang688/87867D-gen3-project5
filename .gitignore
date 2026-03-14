@@ -26,3 +26,6 @@ ehthumbs.db
 
 ramsete.hpp
 ramsete.cpp
+
+path_planner.hpp
+path_planner.cpp

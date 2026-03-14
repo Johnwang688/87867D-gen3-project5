@@ -36,6 +36,14 @@ extern const double MIN_SPEED_PCT;
 extern const double MAX_CURV_SPEED_FACTOR;
 extern const double PP_DT;
 
+//drivetrain feedforward constants
+extern const double DRIVE_KS;
+
+//ramsete feedforward constants
+extern const double KS;
+extern const double KA;
+extern const double KV;
+
 // mm
 extern const double WHEEL_DIAMETER;
 extern const double TRACK_WIDTH;

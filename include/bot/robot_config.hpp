@@ -23,7 +23,7 @@ namespace bot {
         
         extern bot::Inertial imu;
         extern vex::distance left_dist; extern vex::distance right_dist;
-        extern vex::distance back_dist;
+        extern vex::distance back_dist; extern vex::distance front_dist;
         extern vex::distance left_dist_fwd; extern vex::distance left_dist_aft;
         extern vex::distance right_dist_fwd; extern vex::distance right_dist_aft;
         extern vex::distance front_dist_left; extern vex::distance front_dist_right;

@@ -20,6 +20,14 @@ const double MAX_INTEGRAL = 1000.0;
 const double MAX_OUTPUT = 100.0;
 const double DT = 0.02; // seconds
 
+// drivetrain feedforward constanst
+const double DRIVE_KS = 0.10;
+
+//ramsete feedforward constants
+const double KS = 0.80;
+const double KA = 0.005;
+const double KV = 0.005;
+
 // pure pursuit constants
 const double HEADING_KP = 1.25;
 const double HEADING_KI = 0.05;

@@ -24,6 +24,8 @@ class Drivetrain {
         void drive_for(double distance, double timeout, double speed_limit, double target_heading);
         void drive(double distance, double timeout, double speed_limit, double target_heading);
         void turn_to_heading(double heading, double timeout, double speed_limit);
+        void drive_dist(double target_distance, double timeout, double speed_limit, double target_heading, 
+            double tolerance, vex::distance& dist_sensor, bot::driveDirection direction);
         void drive_arc(double radius, double angle, double timeout, double speed_limit, double lookahead);
 
         void drive_to(std::vector<Waypoint> waypoints, double speed_limit);
