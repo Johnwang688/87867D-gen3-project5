@@ -108,6 +108,8 @@ void Drivetrain::drive(double distance, double timeout, double speed_limit, doub
     _right_dt.setPosition(0, vex::degrees);
     _heading_pid.reset();
     double dist = helpers::mmToDegrees(distance);
+    double pid_scale = 1.0 + (std::pow(1.06, speed_limit)/100.0f);
+    pid_scale = math::clamp(pid_scale, 1.0, 3.0);
     direction = dist > 0 ? 1 : -1;
 
     while (timeout > 0 && bot::Brain.Timer.time(vex::msec) - start_time < timeout) {
@@ -115,8 +117,8 @@ void Drivetrain::drive(double distance, double timeout, double speed_limit, doub
         heading_correction = _heading_pid.compute(heading_error, 0.0, 0.01);
         current_pos = (_left_dt.position(vex::degrees) + _right_dt.position(vex::degrees)) / 2.0;
         position_error = dist - current_pos;
-        left_speed = direction * speed_limit + heading_correction;
-        right_speed = direction * speed_limit - heading_correction;
+        left_speed = direction * speed_limit + (heading_correction * pid_scale);
+        right_speed = direction * speed_limit - (heading_correction * pid_scale);
         left_speed = math::clamp(left_speed, -speed_limit, speed_limit);
         right_speed = math::clamp(right_speed, -speed_limit, speed_limit);
         left_speed *= (_max_voltage / 100.0);
@@ -179,7 +181,7 @@ void Drivetrain::drive_dist(double target_distance, double timeout, double speed
     double min_output = DRIVE_KS * 100.0f;
     double start_time = vex::timer::system();
     double current_dist, dist_error, current_heading, heading_error, heading_correction, output, left_speed, right_speed;
-    PID _dist_pid = PID(0.40, 0.0, 0.5);
+    PID _dist_pid = PID(DRIVE_KP, 0.0, DRIVE_KD);
     _dist_pid.reset();
     _heading_pid.reset();
     while (vex::timer::system() - start_time < timeout) {

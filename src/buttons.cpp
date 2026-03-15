@@ -29,7 +29,6 @@ namespace bot {
         
         //intake motor temperatures
         double lower_temp = bot::motors::lower.temperature();
-        double mid_temp = bot::motors::mid.temperature();
         double upper_temp = bot::motors::upper.temperature();
         // display temperatures on the brain screen
         bot::Controller1.Screen.clearScreen();
@@ -38,7 +37,7 @@ namespace bot {
         bot::Controller1.Screen.setCursor(2,1);
         bot::Controller1.Screen.print("Right Max: %.1f%%", max_right_temp);
         bot::Controller1.Screen.setCursor(3,1);
-        bot::Controller1.Screen.print("L: %.1f M: %.1f U: %.1f", lower_temp, mid_temp, upper_temp);
+        bot::Controller1.Screen.print("L: %.1f U: %.1f", lower_temp, upper_temp);
     }
 
     namespace intake_methods {
@@ -52,11 +51,9 @@ namespace bot {
         }
         void score_upper(){
             upper.spin(forward, 100, percent);
-            mid.spin(forward, 100, percent);
         }
         void stop_scoring_upper(){
             upper.stop();
-            mid.stop();
         }
         void outtake(){
             lower.spin(reverse, 100, percent);
@@ -68,12 +65,12 @@ namespace bot {
 
         void score_middle(){
             bot::mid_scoring_status = true;
-            mid.spin(reverse, 100.0, percent); 
+            upper.spin(reverse, 100.0, percent); 
         }
 
         void stop_scoring_middle(){
             bot::mid_scoring_status = false;
-            mid.stop();
+            upper.stop();
         }
 
         void toggle_middle_score(){
@@ -93,7 +90,6 @@ namespace bot {
         void ButtonL1(){
             bot::pistons::arm_piston.set(false);
             //bot::motors::upper.spin(vex::forward, 100, vex::percent);
-            //bot::motors::mid.spin(vex::forward, 50, vex::percent);
         }
         void ButtonL1_released(){
             bot::pistons::arm_piston.set(true);
