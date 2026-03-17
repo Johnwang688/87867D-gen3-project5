@@ -280,7 +280,7 @@ namespace bot {
             bot::sensors::imu.setHeading(0.0, vex::degrees);
             double start_time = vex::timer::system();
             bot::Controller1.Screen.clearScreen();
-            bot::pistons::arm_piston.set(false);
+            bot::pistons::arm_piston.set(true);
             bot::pistons::hood_piston.set(false);
             bot::motors::lower.spin(vex::forward, 100, vex::percent);
             dt.drive(650, 1500, 80, 25);
@@ -326,6 +326,7 @@ namespace bot {
             bot::motors::intake.stop();
             dt.drive(300, 1500, 50, 90);
             dt.turn_to_heading(180, 1000, 60);
+            bot::pistons::arm_piston.set(false);
             dt.drive(-650, 1000, 60, 180);
             dt.hold();
         }
