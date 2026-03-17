@@ -54,7 +54,7 @@ void pre_auton(void) {
 /*---------------------------------------------------------------------------*/
 
 void autonomous(void) {
-  bot::autons::sawp();
+  bot::autons::left_6_3();
   return;
 }
 
@@ -109,8 +109,8 @@ void usercontrol(void) {
   double leftY, leftX, rightY, rightX;
   double left_joystick, right_joystick;
   double left, right;
-  double A = 2.2;
-  double B = 1.04;
+  double A = 0.012;
+  double K = 8;
 
   while (1) {
     leftY = bot::Controller1.Axis3.position();
@@ -122,8 +122,8 @@ void usercontrol(void) {
     left_joystick = sqrt(leftY * leftY + leftX * leftX);
     right_joystick = sqrt(rightY * rightY + rightX * rightX);
 
-    left_joystick = A * std::pow(B, left_joystick) - A;
-    right_joystick = A * std::pow(B, right_joystick) - A;
+    left_joystick = A * (left_joystick - K) * (left_joystick - K);
+    right_joystick = A * (right_joystick - K) * (right_joystick - K);
 
 
     //left_joystick = A * std::pow(B, left_joystick) + C;
