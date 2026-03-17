@@ -31,7 +31,7 @@ const double KV = 0.005;
 // pure pursuit constants
 const double HEADING_KP = 1.0;
 const double HEADING_KI = 0.0;
-const double HEADING_KD = 0.0;
+const double HEADING_KD = 0.005;
 
 const double PP_KP = 2.0;
 const double PP_KI = 0.0;

@@ -108,8 +108,7 @@ void Drivetrain::drive(double distance, double timeout, double speed_limit, doub
     _right_dt.setPosition(0, vex::degrees);
     _heading_pid.reset();
     double dist = helpers::mmToDegrees(distance);
-    double pid_scale = 1.0 + (std::pow(1.06, speed_limit)/100.0f);
-    pid_scale = math::clamp(pid_scale, 1.0, 3.0);
+    double position_tolerance = helpers::mmToDegrees(std::abs(distance) / 10.0);
     direction = dist > 0 ? 1 : -1;
 
     while (timeout > 0 && bot::Brain.Timer.time(vex::msec) - start_time < timeout) {
@@ -117,8 +116,8 @@ void Drivetrain::drive(double distance, double timeout, double speed_limit, doub
         heading_correction = _heading_pid.compute(heading_error, 0.0, 0.01);
         current_pos = (_left_dt.position(vex::degrees) + _right_dt.position(vex::degrees)) / 2.0;
         position_error = dist - current_pos;
-        left_speed = direction * speed_limit + (heading_correction * pid_scale);
-        right_speed = direction * speed_limit - (heading_correction * pid_scale);
+        left_speed = direction * speed_limit + heading_correction;
+        right_speed = direction * speed_limit - heading_correction;
         left_speed = math::clamp(left_speed, -speed_limit, speed_limit);
         right_speed = math::clamp(right_speed, -speed_limit, speed_limit);
         left_speed *= (_max_voltage / 100.0);
@@ -126,7 +125,7 @@ void Drivetrain::drive(double distance, double timeout, double speed_limit, doub
         _left_dt.spin(vex::forward, left_speed, vex::voltageUnits::volt);
         _right_dt.spin(vex::forward, right_speed, vex::voltageUnits::volt);
  
-        if (std::abs(position_error) < (std::abs(distance) / 10.0)) break;
+        if (std::abs(position_error) < position_tolerance) break;
         if (direction == 1) {
             if (current_pos > dist) break;
         } else {
@@ -177,6 +176,12 @@ void Drivetrain::turn_to_heading(double heading, double timeout, double speed_li
 void Drivetrain::drive_dist(double target_distance, double timeout, double speed_limit, double target_heading, 
                             double tolerance, vex::distance& dist_sensor, bot::driveDirection direction) 
 {
+    if (timeout <= 0.0 || speed_limit <= 0.0) {
+        _left_dt.stop();
+        _right_dt.stop();
+        return;
+    }
+
     int settle_count = 0;
     double min_output = DRIVE_KS * 100.0f;
     double start_time = vex::timer::system();
@@ -184,10 +189,8 @@ void Drivetrain::drive_dist(double target_distance, double timeout, double speed
     PID _dist_pid = PID(DRIVE_KP, 0.0, DRIVE_KD);
     _dist_pid.reset();
     _heading_pid.reset();
+    tolerance = std::abs(tolerance);
     while (vex::timer::system() - start_time < timeout) {
-        if (!dist_sensor.isObjectDetected()) {
-            break;
-        }
         current_dist = dist_sensor.objectDistance(vex::mm);
         if (!std::isfinite(current_dist) || current_dist <= 0.0) {
             break;
@@ -199,10 +202,14 @@ void Drivetrain::drive_dist(double target_distance, double timeout, double speed
         heading_correction = _heading_pid.compute(heading_error, 0.0, 0.035);
         left_speed = output + heading_correction;
         right_speed = output - heading_correction;
-        left_speed = (left_speed < 0) ? left_speed - min_output : left_speed + min_output;
-        right_speed = (right_speed < 0) ? right_speed - min_output : right_speed + min_output;
-        left_speed = math::clamp(left_speed, -100, 100);
-        right_speed = math::clamp(right_speed, -100.0, 100.0);
+        if (std::abs(left_speed) > 1e-6) {
+            left_speed = (left_speed < 0) ? left_speed - min_output : left_speed + min_output;
+        }
+        if (std::abs(right_speed) > 1e-6) {
+            right_speed = (right_speed < 0) ? right_speed - min_output : right_speed + min_output;
+        }
+        left_speed = math::clamp(left_speed, -speed_limit, speed_limit);
+        right_speed = math::clamp(right_speed, -speed_limit, speed_limit);
         left_speed *= _max_voltage/100.0f;
         right_speed *= _max_voltage/100.0f;
         _left_dt.spin(vex::forward, left_speed, vex::volt);

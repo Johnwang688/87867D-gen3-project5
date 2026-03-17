@@ -33,7 +33,9 @@ namespace bot {
     namespace pistons {
         extern vex::digital_out arm_piston;
         extern vex::digital_out match_load_piston;
+        extern vex::digital_out hood_piston;
         extern void toggle_arm_piston();
         extern void toggle_match_load_piston();
+        extern void toggle_hood_piston();
     }
 }

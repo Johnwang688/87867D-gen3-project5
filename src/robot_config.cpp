@@ -43,11 +43,15 @@ namespace bot {
 	namespace pistons {
 		vex::digital_out match_load_piston = vex::digital_out(bot::Brain.ThreeWirePort.B);
 		vex::digital_out arm_piston = vex::digital_out(bot::Brain.ThreeWirePort.A);
+		vex::digital_out hood_piston = vex::digital_out(bot::Brain.ThreeWirePort.H);
 		void toggle_arm_piston() {
 			arm_piston.set(!arm_piston.value());
 		}
 		void toggle_match_load_piston() {
 			match_load_piston.set(!match_load_piston.value());
+		}
+		void toggle_hood_piston() {
+			hood_piston.set(!hood_piston.value());
 		}
 	}
 }

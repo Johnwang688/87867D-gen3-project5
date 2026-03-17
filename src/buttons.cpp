@@ -98,11 +98,13 @@ namespace bot {
         }
         void ButtonL2(){
             bot::intake_methods::score_upper();
+            bot::pistons::hood_piston.set(true);
             //bot::motors::upper.spin(vex::reverse, 100, vex::percent);
             //bot::motors::mid.spin(vex::reverse, 50, vex::percent);
         }
         void ButtonL2_released(){
             bot::intake_methods::stop_scoring_upper();
+            bot::pistons::hood_piston.set(false);
             //bot::motors::upper.stop();
             //bot::motors::mid.stop();
         }
