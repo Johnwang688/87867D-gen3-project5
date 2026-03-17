@@ -166,23 +166,37 @@ namespace bot {
             bot::sensors::imu.setHeading(0.0, vex::degrees);
             double start_time = vex::timer::system();
             bot::Controller1.Screen.clearScreen();
-            bot::pistons::arm_piston.set(false);
-            dt.drive(650, 1500, 80, -35);
+            bot::pistons::arm_piston.set(true);
+            bot::pistons::hood_piston.set(false);
+            bot::motors::lower.spin(vex::forward, 100, vex::percent);
+            dt.drive(650, 1500, 80, -25);
             bot::pistons::match_load_piston.set(true);
             vex::task match_load_task = vex::task([]() -> int {
-                vex::task::sleep(400);
+                vex::task::sleep(200);
                 bot::pistons::match_load_piston.set(false);
                 return 0;
             });
-            dt.drive(400, 1500, 80, -60);
-            dt.drive_for(300, 800, 80, -80);
-            bot::pistons::match_load_piston.set(true);
-            dt.drive(-600, 1500, 80, 0);
-            dt.drive(-500, 1500, 80, 90);
-            dt.drive_dist(600, 1000, 80, 90, 5.0, bot::sensors::back_dist, bot::rev);
+            dt.drive(250, 1500, 80, -65);
+            dt.drive(250, 1000, 80, -80);
+            vex::task match_load_task2 = vex::task([]() -> int {
+                vex::task::sleep(500);
+                bot::pistons::match_load_piston.set(true);
+                return 0;
+            });
+            dt.drive_for(500, 1000, 80, -80);
+            vex::task match_load_task3 = vex::task([]() -> int {
+                vex::task::sleep(800);
+                bot::pistons::match_load_piston.set(false);
+                return 0;
+            });
+            dt.drive(-750, 2000, 80, 0);
+            dt.drive(-300, 1500, 80, 90);
+            dt.drive_dist(590, 1000, 50, 90, 5.0, bot::sensors::back_dist, bot::rev);
+            bot::pistons::hood_piston.set(true);
             bot::Controller1.Screen.clearScreen();
             bot::Controller1.Screen.setCursor(1,1);
             bot::Controller1.Screen.print("back dist: %.1f", bot::sensors::back_dist.objectDistance(vex::mm));
+            printf("back dist: %.1f", bot::sensors::back_dist.objectDistance(vex::mm));
             dt.drive(-500, 800, 50, 180);
             bot::motors::intake.spin(vex::forward, 100, vex::percent);
             vex::task heading_adjust_task = vex::task([]() -> int {
@@ -226,8 +240,8 @@ namespace bot {
             bot::sensors::imu.setHeading(0.0, vex::degrees);
             double start_time = vex::timer::system();
             bot::Controller1.Screen.clearScreen();
-            bot::pistons::arm_piston.set(false);
-            bot::pistons::hood_piston.set(true);
+            bot::pistons::arm_piston.set(true);
+            bot::pistons::hood_piston.set(false);
             bot::motors::lower.spin(vex::forward, 100, vex::percent);
             dt.drive(650, 1500, 80, -25);
             bot::pistons::match_load_piston.set(true);
@@ -252,7 +266,7 @@ namespace bot {
             dt.drive(-750, 2000, 80, 0);
             dt.drive(-300, 1500, 80, 90);
             dt.drive_dist(590, 1000, 50, 90, 5.0, bot::sensors::back_dist, bot::rev);
-            bot::pistons::hood_piston.set(false);
+            bot::pistons::hood_piston.set(true);
             bot::Controller1.Screen.clearScreen();
             bot::Controller1.Screen.setCursor(1,1);
             bot::Controller1.Screen.print("back dist: %.1f", bot::sensors::back_dist.objectDistance(vex::mm));
@@ -272,6 +286,7 @@ namespace bot {
             bot::motors::intake.stop();
             dt.drive(300, 1500, 50, -90);
             dt.turn_to_heading(180, 1000, 60);
+            bot::pistons::arm_piston.set(false);
             dt.drive(-650, 1000, 60, 180);
             dt.hold();
         }
