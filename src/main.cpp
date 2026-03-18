@@ -15,10 +15,10 @@
 
 using namespace vex;
 
-static double max_speed = 100;
+static double max_speed = 100.0;
 
 static void toggle_max_speed() {
-  max_speed = (max_speed == 100.0) ? 40.0 : 100.0;
+  max_speed = (max_speed == 100.0) ? 80.0 : 100.0;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -54,7 +54,7 @@ void pre_auton(void) {
 /*---------------------------------------------------------------------------*/
 
 void autonomous(void) {
-  bot::autons::sawp();
+  bot::autons::left_6_3();
   return;
 }
 
@@ -102,7 +102,8 @@ void usercontrol(void) {
 
   bot::Controller1.ButtonLeft.pressed(bot::buttons::ButtonLeft);
   bot::Controller1.ButtonRight.pressed(bot::buttons::ButtonRight);
-  bot::Controller1.ButtonDown.pressed(bot::buttons::ButtonDown);
+  bot::Controller1.ButtonDown.pressed(toggle_max_speed);
+  //bot::Controller1.ButtonDown.pressed(bot::buttons::ButtonDown);
   bot::Controller1.ButtonUp.pressed(bot::buttons::ButtonUp);
   
   // variables for driver control
