@@ -54,7 +54,7 @@ void pre_auton(void) {
 /*---------------------------------------------------------------------------*/
 
 void autonomous(void) {
-  bot::autons::left_6_3();
+  bot::autons::sawp();
   return;
 }
 
