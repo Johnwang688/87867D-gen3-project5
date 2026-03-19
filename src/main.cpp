@@ -12,6 +12,7 @@
 #include "buttons.hpp"
 #include "auton.hpp"
 #include "bot/debug.hpp"
+#include "pid_tuner.hpp"
 
 using namespace vex;
 
@@ -20,6 +21,43 @@ static double max_speed = 100.0;
 static void toggle_max_speed() {
   max_speed = (max_speed == 100.0) ? 80.0 : 100.0;
 }
+
+volatile bool is_arcade_drive = false;
+
+static void toggle_drive_mode() {
+  is_arcade_drive = !is_arcade_drive;
+}
+
+PIDTuner optimizer = PIDTuner(bot::drivetrains::dt._drive_pid);
+
+static void tune_pid() {
+  optimizer.reset();
+  PIDGains best_gains = optimizer.tune(bot::drive, 10);
+  printf("---");
+  printf("kp: %.6f, kd: %.6f", best_gains.kp, best_gains.kd);
+  printf("best_time: %.1f", optimizer.get_best_time());
+  printf("lr: %.6f", optimizer.get_learning_rate());
+  printf("----");
+
+  optimizer.set_learning_rate(0.01);
+  best_gains = optimizer.tune(bot::drive, 10);
+  printf("---");
+  printf("kp: %.6f, kd: %.6f", best_gains.kp, best_gains.kd);
+  printf("best_time: %.1f", optimizer.get_best_time());
+  printf("lr: %.6f", optimizer.get_learning_rate());
+  printf("----");
+
+  optimizer.set_learning_rate(0.001);
+  best_gains = optimizer.tune(bot::drive, 10);
+  printf("---");
+  printf("kp: %.6f, kd: %.6f", best_gains.kp, best_gains.kd);
+  printf("best_time: %.1f", optimizer.get_best_time());
+  printf("lr: %.6f", optimizer.get_learning_rate());
+  printf("----");
+  return;
+}
+
+
 
 /*---------------------------------------------------------------------------*/
 /*                          Pre-Autonomous Functions                         */
@@ -101,7 +139,8 @@ void usercontrol(void) {
   bot::Controller1.ButtonY.released(bot::buttons::ButtonY_released);
 
   bot::Controller1.ButtonLeft.pressed(bot::buttons::ButtonLeft);
-  bot::Controller1.ButtonRight.pressed(bot::buttons::ButtonRight);
+  bot::Controller1.ButtonRight.pressed(toggle_drive_mode);
+  //bot::Controller1.ButtonRight.pressed(bot::buttons::ButtonRight);
   bot::Controller1.ButtonDown.pressed(toggle_max_speed);
   //bot::Controller1.ButtonDown.pressed(bot::buttons::ButtonDown);
   bot::Controller1.ButtonUp.pressed(bot::buttons::ButtonUp);
@@ -110,6 +149,7 @@ void usercontrol(void) {
   double leftY, leftX, rightY, rightX;
   double left_joystick, right_joystick;
   double left, right;
+  double fwd, turn;
   //double A = 0.012;
   //double K = 8;
 
@@ -123,6 +163,12 @@ void usercontrol(void) {
     left_joystick = sqrt(leftY * leftY + leftX * leftX);
     right_joystick = sqrt(rightY * rightY + rightX * rightX);
 
+    left = left_joystick;
+    right = right_joystick;
+
+    fwd = left_joystick;
+    turn = right_joystick;
+
     //left_joystick = A * (left_joystick - K) * (left_joystick - K);
     //right_joystick = A * (right_joystick - K) * (right_joystick - K);
 
@@ -131,16 +177,25 @@ void usercontrol(void) {
     //right_joystick = A * std::pow(B, right_joystick) + C;
 
     // deadzone adjustment
-    if (fabs(left_joystick) < CONTROLLER_DEADZONE) left_joystick = 0.0;
-    if (fabs(right_joystick) < CONTROLLER_DEADZONE) right_joystick = 0.0;
+    if (fabs(left) < CONTROLLER_DEADZONE) left = 0.0;
+    if (fabs(right) < CONTROLLER_DEADZONE) right = 0.0;
+    if (fabs(fwd) < CONTROLLER_DEADZONE) fwd = 0.0;
+    if (fabs(turn) < CONTROLLER_DEADZONE) turn = 0.0;
      
     left = (leftY < 0) ? -left_joystick : left_joystick;
     right = (rightY < 0) ? -right_joystick : right_joystick;
 
+    fwd = (leftY < 0) ? -fwd : fwd;
+    turn = (rightX < 0) ? -turn : turn;
+
     left = math::clamp(left, -max_speed, max_speed);
     right = math::clamp(right, -max_speed, max_speed);
 
-    bot::drivetrains::dt.tank_drive(left, right);
+    fwd = math::clamp(fwd, -max_speed, max_speed);
+    turn = math::clamp(turn, -max_speed, max_speed);
+
+    if (!is_arcade_drive) bot::drivetrains::dt.tank_drive(left, right);
+    else bot::drivetrains::dt.arcade_drive(fwd, turn);
 
     vex::task::sleep(20); // Sleep the task for a short amount of time to
                           // prevent wasted resources.

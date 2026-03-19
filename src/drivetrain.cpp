@@ -20,7 +20,8 @@ Drivetrain::Drivetrain(vex::motor_group& left_dt,
     _left_arc_pid(ARC_KP, ARC_KI, ARC_KD),
     _right_arc_pid(ARC_KP, ARC_KI, ARC_KD),
     _heading_pidf(20.0, 0.0, 0.0),
-    _distance_pidf(0.1, 0.0, 0.0)
+    _distance_pidf(0.1, 0.0, 0.0),
+    _dist_pid(DRIVE_KP, DRIVE_KI, DRIVE_KD)
     {}
 
 void Drivetrain::tank_drive(double left_speed, double right_speed) {
@@ -33,8 +34,10 @@ void Drivetrain::tank_drive(double left_speed, double right_speed) {
 void Drivetrain::arcade_drive(double fwd, double turn) {
     fwd = math::clamp(fwd, -100, 100);
     turn = math::clamp(turn, -100, 100);
-    double left_speed = math::clamp(fwd + turn, -100, 100);
-    double right_speed = math::clamp(fwd - turn, -100, 100);
+    double left_speed = fwd + turn;
+    double right_speed = fwd - turn;
+    left_speed = math::clamp(left_speed, -100, 100);
+    right_speed = math::clamp(right_speed, -100, 100);
     tank_drive(left_speed, right_speed);
 }
 
@@ -82,8 +85,8 @@ void Drivetrain::drive_for(double distance, double timeout, double speed_limit, 
         right_speed *= (_max_voltage / 100.0);
         _left_dt.spin(vex::forward, left_speed, vex::voltageUnits::volt);
         _right_dt.spin(vex::forward, right_speed, vex::voltageUnits::volt);
-        if (std::abs(dist - current_pos) < 10
-        && std::abs(heading_error) < 1.0) {
+        if (fabs(dist - current_pos) < 10
+        && fabs(heading_error) < 1.0) {
             settle++;
         } else {
             settle = 0;
@@ -96,7 +99,7 @@ void Drivetrain::drive_for(double distance, double timeout, double speed_limit, 
 }
 
 void Drivetrain::drive(double distance, double timeout, double speed_limit, double target_heading) {
-    if (std::abs(distance) < 1e-6 || timeout <= 0.0 || speed_limit <= 0.0) {
+    if (fabs(distance) < 1e-6 || timeout <= 0.0 || speed_limit <= 0.0) {
         _left_dt.stop();
         _right_dt.stop();
         return;
@@ -108,7 +111,7 @@ void Drivetrain::drive(double distance, double timeout, double speed_limit, doub
     _right_dt.setPosition(0, vex::degrees);
     _heading_pid.reset();
     double dist = helpers::mmToDegrees(distance);
-    double position_tolerance = helpers::mmToDegrees(std::abs(distance) / 10.0);
+    double position_tolerance = helpers::mmToDegrees(fabs(distance) / 10.0);
     direction = dist > 0 ? 1 : -1;
 
     while (timeout > 0 && bot::Brain.Timer.time(vex::msec) - start_time < timeout) {
@@ -125,7 +128,7 @@ void Drivetrain::drive(double distance, double timeout, double speed_limit, doub
         _left_dt.spin(vex::forward, left_speed, vex::voltageUnits::volt);
         _right_dt.spin(vex::forward, right_speed, vex::voltageUnits::volt);
  
-        if (std::abs(position_error) < position_tolerance) break;
+        if (fabs(position_error) < position_tolerance) break;
         if (direction == 1) {
             if (current_pos > dist) break;
         } else {
@@ -159,7 +162,7 @@ void Drivetrain::turn_to_heading(double heading, double timeout, double speed_li
         right_speed *= _max_voltage/100.0f;
         _left_dt.spin(vex::forward, left_speed, vex::voltageUnits::volt);
         _right_dt.spin(vex::forward, right_speed, vex::voltageUnits::volt);
-        if (std::abs(heading_error) < 1.0) {
+        if (fabs(heading_error) < 1.0) {
             settle_count++;
         } else {
             settle_count = 0;
@@ -186,10 +189,9 @@ void Drivetrain::drive_dist(double target_distance, double timeout, double speed
     double min_output = DRIVE_KS * 100.0f;
     double start_time = vex::timer::system();
     double current_dist, dist_error, current_heading, heading_error, heading_correction, output, left_speed, right_speed;
-    PID _dist_pid = PID(DRIVE_KP, 0.0, DRIVE_KD);
     _dist_pid.reset();
     _heading_pid.reset();
-    tolerance = std::abs(tolerance);
+    tolerance = fabs(tolerance);
     while (vex::timer::system() - start_time < timeout) {
         current_dist = dist_sensor.objectDistance(vex::mm);
         if (!std::isfinite(current_dist) || current_dist <= 0.0) {
@@ -202,10 +204,10 @@ void Drivetrain::drive_dist(double target_distance, double timeout, double speed
         heading_correction = _heading_pid.compute(heading_error, 0.0, 0.035);
         left_speed = output + heading_correction;
         right_speed = output - heading_correction;
-        if (std::abs(left_speed) > 1e-6) {
+        if (fabs(left_speed) > 1e-6) {
             left_speed = (left_speed < 0) ? left_speed - min_output : left_speed + min_output;
         }
-        if (std::abs(right_speed) > 1e-6) {
+        if (fabs(right_speed) > 1e-6) {
             right_speed = (right_speed < 0) ? right_speed - min_output : right_speed + min_output;
         }
         left_speed = math::clamp(left_speed, -speed_limit, speed_limit);
@@ -214,7 +216,7 @@ void Drivetrain::drive_dist(double target_distance, double timeout, double speed
         right_speed *= _max_voltage/100.0f;
         _left_dt.spin(vex::forward, left_speed, vex::volt);
         _right_dt.spin(vex::forward, right_speed, vex::volt);
-        if (std::abs(dist_error) <= tolerance && std::abs(heading_error) <= 1.0) settle_count ++;
+        if (fabs(dist_error) <= tolerance && fabs(heading_error) <= 1.0) settle_count ++;
         else settle_count = 0;
         if (settle_count >= 3) break;
         vex::task::sleep(35);
@@ -232,7 +234,7 @@ void Drivetrain::drive_arc(double radius, double angle, double timeout, double s
     double start_time = bot::Brain.Timer.time(vex::msec);
     double start_heading = _imu.heading(vex::degrees);
     double direction = (radius * angle >= 0) ? 1.0 : -1.0;
-    double arc_length = std::abs(radius) * math::to_rad(std::abs(angle));
+    double arc_length = fabs(radius) * math::to_rad(fabs(angle));
     double target_encoder = direction * helpers::mmToDegrees(arc_length);
     double heading_target, heading_error, heading_correction, current_pos, left_speed, right_speed, progress;
     _left_dt.setPosition(0, vex::degrees);
@@ -240,7 +242,7 @@ void Drivetrain::drive_arc(double radius, double angle, double timeout, double s
     _heading_pid.reset();
     _heading_pid.set_gains(2.0, 0.0, 1.0);
     _drive_pid.reset();
-    lookahead = direction * std::abs(lookahead);
+    lookahead = direction * fabs(lookahead);
     while (bot::Brain.Timer.time(vex::msec) - start_time < timeout) {
         current_pos = (_left_dt.position(vex::degrees) + _right_dt.position(vex::degrees)) / 2.0;
         progress = (current_pos + lookahead) / target_encoder;
@@ -256,7 +258,7 @@ void Drivetrain::drive_arc(double radius, double angle, double timeout, double s
         right_speed *= (_max_voltage / 100.0);
         _left_dt.spin(vex::forward, left_speed, vex::voltageUnits::volt);
         _right_dt.spin(vex::forward, right_speed, vex::voltageUnits::volt);
-        if (std::abs(current_pos - target_encoder) < 25 && std::abs(heading_error) < 1.0) {
+        if (fabs(current_pos - target_encoder) < 25 && fabs(heading_error) < 1.0) {
             settle_count++;
         } else {
             settle_count = 0;
@@ -283,7 +285,7 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
     if (timeout <= 0.0) return;
 
     lookahead_dist = std::max(lookahead_dist, 1.0);
-    base_speed = math::clamp(std::abs(base_speed), 1.0, 100.0);
+    base_speed = math::clamp(fabs(base_speed), 1.0, 100.0);
 
     double start_time = bot::Brain.Timer.time(vex::msec);
     const double end_threshold = 30.0;
@@ -309,7 +311,7 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
         size_t n = path.size();
         double seg_dx = path[n - 1].x - path[n - 2].x;
         double seg_dy = path[n - 1].y - path[n - 2].y;
-        double seg_len = std::sqrt(seg_dx * seg_dx + seg_dy * seg_dy);
+        double seg_len = sqrt(seg_dx * seg_dx + seg_dy * seg_dy);
         if (seg_len > 1.0) {
             ext_x += (seg_dx / seg_len) * lookahead_dist;
             ext_y += (seg_dy / seg_len) * lookahead_dist;
@@ -338,7 +340,7 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
 
         double dx_end = path.back().x - pose.x;
         double dy_end = path.back().y - pose.y;
-        double dist_to_end = std::sqrt(dx_end * dx_end + dy_end * dy_end);
+        double dist_to_end = sqrt(dx_end * dx_end + dy_end * dy_end);
 
         if (dist_to_end < end_threshold) {
             settle_count++;
@@ -399,7 +401,7 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
         // Slow down when turn demand is high to prevent drifting in sharp turns.
         // turn_ratio: 0 = going straight, 1 = heading PID is saturated.
         double turn_ratio = (max_correction > 0.0)
-            ? std::min(1.0, std::abs(heading_correction) / max_correction)
+            ? std::min(1.0, fabs(heading_correction) / max_correction)
             : 0.0;
         double turn_speed_scale = 1.0 - (1.0 - MIN_TURN_SPEED_FRAC) * turn_ratio;
 
@@ -408,7 +410,7 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
         double left_speed = speed + heading_correction;
         double right_speed = speed - heading_correction;
 
-        double speed_lim = std::abs(speed) + std::abs(heading_correction);
+        double speed_lim = fabs(speed) + fabs(heading_correction);
         left_speed = math::clamp(left_speed, -speed_lim, speed_lim);
         right_speed = math::clamp(right_speed, -speed_lim, speed_lim);
 
@@ -430,14 +432,14 @@ void Drivetrain::pure_pursuit(const std::vector<PathPoint>& path, double lookahe
         double left_voltage = KV * desired_left_velocity + KA * desired_left_accel;
         double right_voltage = KV * desired_right_velocity + KA * desired_right_accel;
 
-        if (std::abs(desired_left_velocity) > 1.0) {
+        if (fabs(desired_left_velocity) > 1.0) {
             left_voltage += KS * (desired_left_velocity > 0.0 ? 1.0 : -1.0);
         }
-        if (std::abs(desired_right_velocity) > 1.0) {
+        if (fabs(desired_right_velocity) > 1.0) {
             right_voltage += KS * (desired_right_velocity > 0.0 ? 1.0 : -1.0);
         }
 
-        double max_abs_voltage = std::max(std::abs(left_voltage), std::abs(right_voltage));
+        double max_abs_voltage = std::max(fabs(left_voltage), fabs(right_voltage));
         if (max_abs_voltage > _max_voltage) {
             double scale = _max_voltage / max_abs_voltage;
             left_voltage *= scale;
@@ -475,10 +477,10 @@ void Drivetrain::drive_to(std::vector<Waypoint> waypoints, double speed_limit){
         double dy = waypoint.y - start_waypoint.y;
         double arc_distance;
         double chord = std::hypot(dx, dy);
-        if (std::abs(waypoint_heading_error) < 1e-6) {
+        if (fabs(waypoint_heading_error) < 1e-6) {
             arc_distance = helpers::mmToDegrees(chord);
         } else {
-            double theta = math::to_rad(std::abs(waypoint_heading_error));
+            double theta = math::to_rad(fabs(waypoint_heading_error));
             arc_distance = helpers::mmToDegrees((chord * theta) / (2.0 * std::sin(theta * 0.5)));
         }
         std::vector<double> headings;
@@ -518,7 +520,7 @@ void Drivetrain::drive_to(std::vector<Waypoint> waypoints, double speed_limit){
             feedforward = kF * direction;
             base_speed = feedforward + distance_correction;
             heading_ratio = math::clamp(heading_correction * 0.01, -max_heading_correction, max_heading_correction);
-            scaled_heading = heading_ratio * std::max(std::abs(base_speed), 10.0);
+            scaled_heading = heading_ratio * std::max(fabs(base_speed), 10.0);
             left_speed = base_speed + scaled_heading;
             right_speed = base_speed - scaled_heading;
             left_speed = math::clamp(left_speed, -speed_limit, speed_limit);

@@ -10,6 +10,8 @@
 #include <array>
 #include <string>
 
+#include <math.h>
+#include <stdio.h>
 
 #include "bot/robot_config.hpp"
 #include "bot/constants.hpp"

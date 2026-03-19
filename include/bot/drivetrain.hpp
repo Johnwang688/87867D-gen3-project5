@@ -33,6 +33,16 @@ class Drivetrain {
         // All distances in mm.  base_speed is a percentage (0-100).
         void pure_pursuit(const std::vector<PathPoint>& path, double lookahead_dist,
                           double base_speed, double timeout);
+
+        PID _drive_pid;
+        PID _heading_pid;
+        PID _turn_pid;
+        PID _left_arc_pid;
+        PID _right_arc_pid;
+        PID _heading_pidf;
+        PID _distance_pidf;
+        PID _dist_pid;
+        
     private:
         vex::motor_group& _left_dt;
         vex::motor_group& _right_dt;
@@ -42,13 +52,7 @@ class Drivetrain {
         double _gear_ratio;
         double _max_voltage;
         double _max_accel;
-        PID _drive_pid;
-        PID _heading_pid;
-        PID _turn_pid;
-        PID _left_arc_pid;
-        PID _right_arc_pid;
-        PID _heading_pidf;
-        PID _distance_pidf;
+        
 };
 
 }

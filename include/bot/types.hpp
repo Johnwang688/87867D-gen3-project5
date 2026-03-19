@@ -43,3 +43,9 @@ struct PathPoint {
     std::int8_t direction;  // +1 = forward, -1 = reverse
 };
 
+struct PIDGains {
+    double kp;
+    double ki;
+    double kd;
+};
+
