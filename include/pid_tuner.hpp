@@ -35,9 +35,20 @@ class PIDTuner {
             _last_drive_direction = -1;
         }
 
+        void tune_drive(bot::gainType gain, double distance, double speed_limit);
+        void tune_drive(bot::gainType gain, double distance);
         void tune_drive(bot::gainType gain);
+
+        void tune_turn(bot::gainType gain, double heading, double speed_limit);
+        void tune_turn(bot::gainType gain, double heading);
         void tune_turn(bot::gainType gain);
+
+        void tune_heading(bot::gainType gain, double heading, double speed_limit);
+        void tune_heading(bot::gainType gain, double heading);
         void tune_heading(bot::gainType gain);
+
+        void tune_distance(bot::gainType gain, double distance, double speed_limit);
+        void tune_distance(bot::gainType gain, double distance);
         void tune_distance(bot::gainType gain);
 
         PIDGains tune(bot::PIDType type, int epochs);

@@ -21,6 +21,7 @@ class Drivetrain {
         void coast();
         void hold();
 
+        void drive_for(double distance, double timeout, double speed_limit, double target_heading, double end_vel);
         void drive_for(double distance, double timeout, double speed_limit, double target_heading);
         void drive(double distance, double timeout, double speed_limit, double target_heading);
         void turn_to_heading(double heading, double timeout, double speed_limit);
