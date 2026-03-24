@@ -62,133 +62,40 @@ void Drivetrain::hold() {
 }
 
 void Drivetrain::drive_for(double distance, double timeout, double speed_limit, double target_heading) {
-    drive_for(distance, timeout, speed_limit, target_heading, 0.0);
-}
-
-void Drivetrain::drive_for(double distance, double timeout, double speed_limit, double target_heading, double end_vel) {
     double start_time = bot::Brain.Timer.time(vex::msec);
     int settle = 0;
     double heading_error, heading_correction, speed, current_pos, left_speed, right_speed;
+    double min_output = DRIVE_KS * 100.0f;
     _left_dt.setPosition(0, vex::degrees);
     _right_dt.setPosition(0, vex::degrees);
     _drive_pid.reset();
     _heading_pid.reset();
-
-    double dist_deg = helpers::mmToDegrees(distance);
-    double direction = distance > 0 ? 1.0 : -1.0;
-    double abs_dist_mm = fabs(distance);
-    end_vel = fabs(end_vel);
-
-    // Measure current velocity for rolling start (mm/s)
-    double initial_vel = fabs(helpers::encoderDegreesToMM(
-        (_left_dt.velocity(vex::dps) + _right_dt.velocity(vex::dps)) / 2.0));
-
-    // Trapezoidal motion profile
-    double max_vel = speed_limit;
-    double accel = max_vel / 0.3;
-    double decel = max_vel / 0.3;
-
-    // Accel phase: ramp from initial_vel to max_vel
-    // v^2 = v0^2 + 2*a*d => d = (v^2 - v0^2) / (2*a)
-    double v0 = fmin(initial_vel, max_vel);
-    double dist_accel = fmax((max_vel * max_vel - v0 * v0) / (2.0 * accel), 0.0);
-
-    // Decel phase: ramp from max_vel down to end_vel
-    double dist_decel = fmax((max_vel * max_vel - end_vel * end_vel) / (2.0 * decel), 0.0);
-
-    // If move is too short to reach max_vel, use a triangular profile
-    if (dist_accel + dist_decel > abs_dist_mm) {
-        double scale = abs_dist_mm / (dist_accel + dist_decel);
-        dist_accel *= scale;
-        dist_decel *= scale;
-        // Peak velocity from shortened accel: v_peak^2 = v0^2 + 2*a*d_accel
-        max_vel = sqrt(v0 * v0 + 2.0 * accel * dist_accel);
-    }
-
-    double prev_desired_vel = v0;
-    double dt_sec = 0.02;
-    bool settling = (end_vel < 1.0); // only settle if stopping
-    double prev_heading = _imu.heading(vex::degrees);
-
+    double dist = helpers::mmToDegrees(distance);
     while (timeout > 0 && bot::Brain.Timer.time(vex::msec) - start_time < timeout) {
-        double current_heading = _imu.heading(vex::degrees);
-        heading_error = helpers::angular_difference(current_heading, target_heading);
-        heading_correction = _heading_pid.compute(heading_error, 0.0, dt_sec);
+        heading_error = helpers::angular_difference(_imu.heading(vex::degrees), target_heading);
+        heading_correction = _heading_pid.compute(heading_error, 0.0, 0.02);
         current_pos = (_left_dt.position(vex::degrees) + _right_dt.position(vex::degrees)) / 2.0;
-
-        // Centripetal acceleration limiting: cap speed so v*|omega| <= MAX_LATERAL_ACCEL
-        double omega_deg = helpers::angular_difference(current_heading, prev_heading) / dt_sec;
-        double omega_rad = fabs(omega_deg) * (PI / 180.0);
-        prev_heading = current_heading;
-
-        // Convert encoder position to mm for the motion profile
-        double current_pos_mm = helpers::encoderDegreesToMM(current_pos);
-        double abs_pos_mm = fabs(current_pos_mm);
-        double remaining_mm = abs_dist_mm - abs_pos_mm;
-
-        // Determine desired velocity (mm/s) from trapezoidal profile
-        double desired_vel;
-        if (abs_pos_mm < dist_accel) {
-            // Accelerating phase: v = sqrt(v0^2 + 2*a*pos)
-            desired_vel = sqrt(v0 * v0 + 2.0 * accel * fmax(abs_pos_mm, 0.0));
-        } else if (remaining_mm < dist_decel) {
-            // Decelerating phase: v = sqrt(end_vel^2 + 2*decel*remaining)
-            desired_vel = sqrt(end_vel * end_vel + 2.0 * decel * fmax(remaining_mm, 0.0));
-        } else {
-            // Cruise phase
-            desired_vel = max_vel;
-        }
-        desired_vel = fmin(desired_vel, max_vel);
-        desired_vel = fmax(desired_vel, end_vel);
-
-        // Apply centripetal limit: v <= MAX_LATERAL_ACCEL / omega
-        if (omega_rad > 0.01) {
-            double centripetal_limit = MAX_LATERAL_ACCEL / omega_rad;
-            desired_vel = fmin(desired_vel, centripetal_limit);
-        }
-
-        // Compute desired acceleration in mm/s^2
-        double desired_accel = (desired_vel - prev_desired_vel) / dt_sec;
-        prev_desired_vel = desired_vel;
-
-        // Feedforward = KS + KV * vel + KA * accel
-        double ff_ks = (desired_vel > 1.0) ? DRIVE_KS * _max_voltage : 0.0;
-        double feedforward = direction * (ff_ks + DRIVE_KV * desired_vel + DRIVE_KA * desired_accel);
-
-        // PID feedback correction on position error (in encoder degrees, output 0-100)
-        double pid_output = _drive_pid.compute(dist_deg, current_pos, dt_sec);
-
-        // Combine feedforward + feedback (both converted to volts)
-        speed = feedforward + pid_output * (_max_voltage / 100.0);
-
-        left_speed = speed + heading_correction * (_max_voltage / 100.0);
-        right_speed = speed - heading_correction * (_max_voltage / 100.0);
-        double volt_limit = speed_limit * (_max_voltage / 100.0);
-        left_speed = math::clamp(left_speed, -volt_limit, volt_limit);
-        right_speed = math::clamp(right_speed, -volt_limit, volt_limit);
+        speed = _drive_pid.compute(dist, current_pos, 0.02);
+        speed = (speed < 0) ? speed - min_output : speed + min_output;
+        left_speed = speed + heading_correction;
+        right_speed = speed - heading_correction;
+        left_speed = math::clamp(left_speed, -speed_limit, speed_limit);
+        right_speed = math::clamp(right_speed, -speed_limit, speed_limit);
+        left_speed *= (_max_voltage / 100.0);
+        right_speed *= (_max_voltage / 100.0);
         _left_dt.spin(vex::forward, left_speed, vex::voltageUnits::volt);
         _right_dt.spin(vex::forward, right_speed, vex::voltageUnits::volt);
-
-        if (settling) {
-            if (fabs(dist_deg - current_pos) < 10
-            && fabs(heading_error) < 1.0) {
-                settle++;
-            } else {
-                settle = 0;
-            }
-            if (settle >= 3) break;
+        if (fabs(dist - current_pos) < 10
+        && fabs(heading_error) < 1.0) {
+            settle++;
         } else {
-            // Non-settling: exit once we've covered the distance
-            if (abs_pos_mm >= abs_dist_mm) break;
+            settle = 0;
         }
         vex::task::sleep(20);
+        if (settle >= 3) break;
     }
-
-    // If ending at 0, stop motors. Otherwise leave them running at end_vel.
-    if (end_vel < 1.0) {
-        _left_dt.spin(vex::forward, 0, vex::voltageUnits::volt);
-        _right_dt.spin(vex::forward, 0, vex::voltageUnits::volt);
-    }
+    _left_dt.spin(vex::forward, 0, vex::voltageUnits::volt);
+    _right_dt.spin(vex::forward, 0, vex::voltageUnits::volt);
 }
 
 void Drivetrain::drive(double distance, double timeout, double speed_limit, double target_heading) {
@@ -239,65 +146,22 @@ void Drivetrain::turn_to_heading(double heading, double timeout, double speed_li
     _left_dt.setPosition(0, vex::degrees);
     _right_dt.setPosition(0, vex::degrees);
     _turn_pid.reset();
-
-    //initial heading error to build motion profile
-    double initial_error = helpers::angular_difference(_imu.heading(vex::degrees), heading);
-    double direction = initial_error > 0 ? 1.0 : -1.0;
-    double abs_total_angle = fabs(initial_error);
-
-    double max_vel = TURN_MAX_VEL * (speed_limit / 100.0);
-    double accel = max_vel / 0.25;  
-    double decel = max_vel / 0.25;  
-
-    double dist_accel = (max_vel * max_vel) / (2.0 * accel);
-    double dist_decel = (max_vel * max_vel) / (2.0 * decel);
-
-    if (dist_accel + dist_decel > abs_total_angle) {
-        double scale = abs_total_angle / (dist_accel + dist_decel);
-        dist_accel *= scale;
-        dist_decel *= scale;
-        max_vel = sqrt(2.0 * accel * dist_accel);
-    }
-
-    double prev_desired_vel = 0.0;
-    double dt_sec = 0.02;
-    double current_heading, heading_error, left_speed, right_speed;
-
+    double current_heading, heading_error, output, left_speed, right_speed;
+    double min_output = DRIVE_KS * 100.0f;
     while (bot::Brain.Timer.time(vex::msec) - start_time < timeout) {
         current_heading = _imu.heading(vex::degrees);
         heading_error = helpers::angular_difference(current_heading, heading);
-
-        double turned = abs_total_angle - fabs(heading_error);
-        double remaining = fabs(heading_error);
-
-        double desired_vel;
-        if (turned < dist_accel) {
-            desired_vel = sqrt(2.0 * accel * fmax(turned, 0.0));
-        } else if (remaining < dist_decel) {
-            desired_vel = sqrt(2.0 * decel * fmax(remaining, 0.0));
-        } else {
-            desired_vel = max_vel;
-        }
-        desired_vel = fmin(desired_vel, max_vel);
-
-        double desired_accel = (desired_vel - prev_desired_vel) / dt_sec;
-        prev_desired_vel = desired_vel;
-
-        // feedforwad = KS + KV * vel + KA * accel
-        double ff_ks = (desired_vel > 1.0) ? DRIVE_KS * _max_voltage : 0.0;
-        double feedforward = direction * (ff_ks + TURN_KV * desired_vel + TURN_KA * desired_accel);
-
-        // PID feedback on heading error (output 0-100)
-        double pid_output = _turn_pid.compute(heading_error, 0.0, dt_sec);
-
-        double output = feedforward + pid_output * (_max_voltage / 100.0);
-
-        double volt_limit = speed_limit * (_max_voltage / 100.0);
-        left_speed = math::clamp(output, -volt_limit, volt_limit);
-        right_speed = math::clamp(-output, -volt_limit, volt_limit);
+        output = _turn_pid.compute(heading_error, 0.0, 0.02);
+        left_speed = output;
+        right_speed = -output;
+        left_speed = (left_speed < 0) ? left_speed - min_output : left_speed + min_output;
+        right_speed = (right_speed < 0) ? right_speed - min_output : right_speed + min_output;
+        left_speed = math::clamp(left_speed, -100, 100);
+        right_speed = math::clamp(right_speed, -100, 100);
+        left_speed *= _max_voltage/100.0f;
+        right_speed *= _max_voltage/100.0f;
         _left_dt.spin(vex::forward, left_speed, vex::voltageUnits::volt);
         _right_dt.spin(vex::forward, right_speed, vex::voltageUnits::volt);
-
         if (fabs(heading_error) < 1.0) {
             settle_count++;
         } else {

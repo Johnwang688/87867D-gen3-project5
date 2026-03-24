@@ -4,9 +4,9 @@
 const double PI = 3.14159265358979323846;
 
 // PID constants
-const double DRIVE_KP = 0.09;
+const double DRIVE_KP = 0.10;
 const double DRIVE_KI = 0.0;
-const double DRIVE_KD = 0.003;
+const double DRIVE_KD = 0.0035;
 
 const double TURN_KP = 0.70;
 const double TURN_KI = 0.0;
@@ -20,19 +20,8 @@ const double MAX_INTEGRAL = 1000.0;
 const double MAX_OUTPUT = 100.0;
 const double DT = 0.02; // seconds
 
-// drivetrain feedforward constants
-const double DRIVE_KS = 0.07;
-const double DRIVE_KV = 0.02;    // volts per (mm/s) — tune by measuring free-spin speed
-const double DRIVE_KA = 0.002;   // volts per (mm/s^2) — start small, increase if accel is sluggish
-const double DRIVE_MAX_VEL = 450.0; // max velocity in mm/s at full voltage (measure empirically)
-
-// turn feedforward constants
-const double TURN_KV = 0.015;     // volts per (deg/s) — tune by measuring max turn speed
-const double TURN_KA = 0.001;     // volts per (deg/s^2) — start small
-const double TURN_MAX_VEL = 400.0; // max angular velocity in deg/s (measure empirically)
-
-// centripetal acceleration limit — caps forward speed during turns to prevent omni wheel drift
-const double MAX_LATERAL_ACCEL = 800.0; // mm/s^2 — lower = more conservative cornering
+// drivetrain feedforward constanst
+const double DRIVE_KS = 0.08;
 
 //ramsete feedforward constants
 const double KS = 0.80;

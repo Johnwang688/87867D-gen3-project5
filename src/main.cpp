@@ -32,6 +32,7 @@ PIDTuner optimizer = PIDTuner(bot::drivetrains::dt._drive_pid);
 
 static void tune_pid() {
   optimizer.reset();
+  optimizer.set_learning_rate(0.01);
   PIDGains best_gains = optimizer.tune(bot::drive, 10);
   printf("---");
   printf("kp: %.6f, kd: %.6f", best_gains.kp, best_gains.kd);
@@ -39,7 +40,7 @@ static void tune_pid() {
   printf("lr: %.6f", optimizer.get_learning_rate());
   printf("----");
 
-  optimizer.set_learning_rate(0.01);
+  optimizer.set_learning_rate(0.001);
   best_gains = optimizer.tune(bot::drive, 10);
   printf("---");
   printf("kp: %.6f, kd: %.6f", best_gains.kp, best_gains.kd);
@@ -47,7 +48,7 @@ static void tune_pid() {
   printf("lr: %.6f", optimizer.get_learning_rate());
   printf("----");
 
-  optimizer.set_learning_rate(0.001);
+  optimizer.set_learning_rate(0.0001);
   best_gains = optimizer.tune(bot::drive, 10);
   printf("---");
   printf("kp: %.6f, kd: %.6f", best_gains.kp, best_gains.kd);

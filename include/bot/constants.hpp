@@ -38,17 +38,6 @@ extern const double PP_DT;
 
 //drivetrain feedforward constants
 extern const double DRIVE_KS;
-extern const double DRIVE_KV;
-extern const double DRIVE_KA;
-extern const double DRIVE_MAX_VEL;
-
-// turn feedforward constants
-extern const double TURN_KV;
-extern const double TURN_KA;
-extern const double TURN_MAX_VEL;
-
-// centripetal acceleration limit (mm/s^2)
-extern const double MAX_LATERAL_ACCEL;
 
 //ramsete feedforward constants
 extern const double KS;
