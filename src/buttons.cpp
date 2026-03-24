@@ -45,14 +45,18 @@ namespace bot {
         using namespace vex;
         void intake(){
             lower.spin(forward, 100, percent);
+            upper.spin(forward, 50.0, percent);
         }
         void stop_intaking(){
             lower.stop();
+            upper.stop();
         }
         void score_upper(){
+            lower.spin(forward, 100, percent);
             upper.spin(forward, 100, percent);
         }
         void stop_scoring_upper(){
+            lower.stop();
             upper.stop();
         }
         void outtake(){
