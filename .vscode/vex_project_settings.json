@@ -4,12 +4,12 @@
 		"json": 2
 	},
 	"project": {
-		"name": "LEFT_6+3",
+		"name": "PID TUNER",
 		"description": "",
 		"creationDate": "1/18/2026, 3:28:51 PM",
 		"platform": "V5",
 		"language": "cpp",
-		"slot": 1,
+		"slot": 8,
 		"sdkVersion": "V5_20240802_15_00_00",
 		"cpp": {
 			"includePath": [],

@@ -4,9 +4,9 @@
 const double PI = 3.14159265358979323846;
 
 // PID constants
-const double DRIVE_KP = 0.09;
+const double DRIVE_KP = 0.05;
 const double DRIVE_KI = 0.0;
-const double DRIVE_KD = 0.003;
+const double DRIVE_KD = 0.0;
 
 const double TURN_KP = 0.70;
 const double TURN_KI = 0.0;

@@ -200,10 +200,10 @@ PIDGains PIDTuner::tune(bot::PIDType type, int epochs) {
     switch (type) {
         case bot::drive:
             for (int i = 0; i < epochs; i++) {
-                tune_drive(bot::kp);
+                tune_drive(bot::kp, 600.0, 100.0);
             }
             for (int i = 0; i < epochs; i++) {
-                tune_drive(bot::kd);
+                tune_drive(bot::kd, 600.0, 100.0);
             }
             break;
         case bot::turn:
