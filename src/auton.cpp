@@ -218,8 +218,7 @@ namespace bot {
             dt.drive(200, 500, 35, 180);
             vex::task::sleep(200);
             dt.drive(300, 500, 50, 180);
-            dt.brake
-            ();
+            dt.brake();
             vex::task::sleep(100);
             dt.drive_for(-150, 1000, 80, 180);
             bot::pistons::match_load_piston.set(false);
