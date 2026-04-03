@@ -3,6 +3,7 @@
 
 namespace bot {
     bool mid_scoring_status = false;
+    volatile bool upper_roller_stall = false;
     void display_temperature() {
         double max_left_temp = 0.0, max_right_temp = 0.0;
         // list of left drivetrain motors
@@ -43,23 +44,83 @@ namespace bot {
     namespace intake_methods {
         using namespace bot::motors;
         using namespace vex;
-        void intake(){
-            lower.spin(forward, 100, percent);
+        double upper_roller_torque = 0.0;
+        volatile bool intake_active = false;
+        volatile bool intake_running = false;
+        volatile bool score_upper_active = false;
+        volatile bool score_upper_running = false;
+        volatile bool outtake_active = false;
+        volatile bool outtake_running = false;
+
+        static void run_upper_with_direction(double voltage) {
+            if (bot::upper_roller_direction) {
+                upper.spin(forward, voltage, vex::volt);
+            } else {
+                upper.spin(reverse, voltage, vex::volt);
+            }
         }
-        void stop_intaking(){
+
+        void intake(){
+            intake_running = true;
+            lower.spin(forward, 100, percent);
+            bot::upper_roller_stall = false;
+            while (intake_active) {
+                upper_roller_torque = upper.torque(vex::torqueUnits::Nm);
+                if (upper_roller_torque > 0.35 /*|| upper_roller_current > 0.63*/) {
+                    bot::upper_roller_stall = true;
+                }
+                if (bot::upper_roller_stall) {
+                    upper.stop();
+                    vex::this_thread::sleep_for(500);
+                    if (!intake_active) {
+                        break;
+                    }
+                    run_upper_with_direction(4.0);
+                    bot::upper_roller_stall = false;
+                } else {
+                    run_upper_with_direction(4.0);
+                }
+                vex::this_thread::sleep_for(50);
+            }
+            intake_active = false;
+            intake_running = false;
+            upper.stop();
             lower.stop();
         }
-        void score_upper(){
-            upper.spin(forward, 100, percent);
-        }
-        void stop_scoring_upper(){
+        void stop_intaking(){
+            intake_active = false;
+            lower.stop();
             upper.stop();
         }
+        void score_upper(){
+            score_upper_running = true;
+            while (score_upper_active) {
+                upper.spin(forward, 100, percent);
+                lower.spin(forward, 100, percent);
+                vex::this_thread::sleep_for(20);
+            }
+            score_upper_active = false;
+            score_upper_running = false;
+            upper.stop();
+            lower.stop();
+        }
+        void stop_scoring_upper(){
+            score_upper_active = false;
+            upper.stop();
+            lower.stop();
+        }
         void outtake(){
-            lower.spin(reverse, 100, percent);
-
+            outtake_running = true;
+            while (outtake_active) {
+                lower.spin(reverse, 100, percent);
+                vex::this_thread::sleep_for(20);
+            }
+            outtake_active = false;
+            outtake_running = false;
+            lower.stop();
         }
         void stop_outtaking(){
+            outtake_active = false;
             lower.stop();
         }
 
@@ -86,6 +147,42 @@ namespace bot {
 
         using namespace bot::intake_methods;
         using namespace bot::pistons;
+
+        static ButtonThread button_threads{nullptr, nullptr, nullptr, nullptr};
+
+        static void cleanup_thread(vex::thread*& thread, volatile bool& running_flag) {
+            if (thread != nullptr && !running_flag) {
+                delete thread;
+                thread = nullptr;
+            }
+        }
+
+        static void stop_r1_thread() {
+            bot::intake_methods::stop_intaking();
+            cleanup_thread(button_threads.R1, bot::intake_methods::intake_running);
+        }
+
+        static void stop_r2_thread() {
+            bot::intake_methods::stop_outtaking();
+            cleanup_thread(button_threads.R2, bot::intake_methods::outtake_running);
+        }
+
+        static void stop_l2_thread() {
+            bot::intake_methods::stop_scoring_upper();
+            cleanup_thread(button_threads.L2, bot::intake_methods::score_upper_running);
+        }
+
+        static void stop_conflicting_threads(vex::thread*& current_thread) {
+            if (&current_thread != &button_threads.R1) {
+                stop_r1_thread();
+            }
+            if (&current_thread != &button_threads.R2) {
+                stop_r2_thread();
+            }
+            if (&current_thread != &button_threads.L2) {
+                stop_l2_thread();
+            }
+        }
     
         void ButtonL1(){
             bot::pistons::arm_piston.set(false);
@@ -97,28 +194,43 @@ namespace bot {
             //bot::motors::mid.stop();
         }
         void ButtonL2(){
-            bot::intake_methods::score_upper();
+            stop_conflicting_threads(button_threads.L2);
+            cleanup_thread(button_threads.L2, bot::intake_methods::score_upper_running);
+            if (button_threads.L2 == nullptr) {
+                bot::intake_methods::score_upper_active = true;
+                button_threads.L2 = new vex::thread(bot::intake_methods::score_upper);
+            }
             bot::pistons::hood_piston.set(true);
             //bot::motors::upper.spin(vex::reverse, 100, vex::percent);
             //bot::motors::mid.spin(vex::reverse, 50, vex::percent);
         }
         void ButtonL2_released(){
-            bot::intake_methods::stop_scoring_upper();
+            stop_l2_thread();
             bot::pistons::hood_piston.set(false);
             //bot::motors::upper.stop();
             //bot::motors::mid.stop();
         }
         void ButtonR1(){
-            bot::intake_methods::intake();
+            stop_conflicting_threads(button_threads.R1);
+            cleanup_thread(button_threads.R1, bot::intake_methods::intake_running);
+            if (button_threads.R1 == nullptr) {
+                bot::intake_methods::intake_active = true;
+                button_threads.R1 = new vex::thread(bot::intake_methods::intake);
+            }
         }
         void ButtonR1_released(){
-            bot::intake_methods::stop_intaking();
+            stop_r1_thread();
         }
         void ButtonR2(){
-            bot::intake_methods::outtake();
+            stop_conflicting_threads(button_threads.R2);
+            cleanup_thread(button_threads.R2, bot::intake_methods::outtake_running);
+            if (button_threads.R2 == nullptr) {
+                bot::intake_methods::outtake_active = true;
+                button_threads.R2 = new vex::thread(bot::intake_methods::outtake);
+            }
         }
         void ButtonR2_released(){
-            bot::intake_methods::stop_outtaking();
+            stop_r2_thread();
         }
         void ButtonX(){
             bot::display_temperature();

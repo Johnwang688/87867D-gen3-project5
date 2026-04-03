@@ -2,11 +2,20 @@
 
 #include "bot/bot.hpp"
 
+struct ButtonThread {
+    vex::thread* R1;
+    vex::thread* R2;
+    vex::thread* L1;
+    vex::thread* L2;
+};
+
 namespace bot {
 
     void display_temperature();
 
     extern bool mid_scoring_status;
+    extern volatile bool upper_roller_direction;
+    extern volatile bool upper_roller_stall;
 
     namespace intake_methods {
         void intake();

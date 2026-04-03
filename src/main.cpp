@@ -18,6 +18,8 @@ using namespace vex;
 
 static double max_speed = 100.0;
 
+namespace bot {volatile bool upper_roller_direction = true;}
+
 static void toggle_max_speed() {
   max_speed = (max_speed == 100.0) ? 80.0 : 100.0;
 }
@@ -26,6 +28,10 @@ volatile bool is_arcade_drive = false;
 
 static void toggle_drive_mode() {
   is_arcade_drive = !is_arcade_drive;
+}
+
+static void toggle_upper_roller_direction() {
+  bot::upper_roller_direction = !bot::upper_roller_direction;
 }
 
 PIDTuner optimizer = PIDTuner(bot::drivetrains::dt._drive_pid);
@@ -142,7 +148,7 @@ void usercontrol(void) {
   bot::Controller1.ButtonLeft.pressed(bot::buttons::ButtonLeft);
   bot::Controller1.ButtonRight.pressed(toggle_drive_mode);
   //bot::Controller1.ButtonRight.pressed(bot::buttons::ButtonRight);
-  bot::Controller1.ButtonDown.pressed(toggle_max_speed);
+  bot::Controller1.ButtonDown.pressed(toggle_upper_roller_direction);
   //bot::Controller1.ButtonDown.pressed(bot::buttons::ButtonDown);
   bot::Controller1.ButtonUp.pressed(bot::buttons::ButtonUp);
   
