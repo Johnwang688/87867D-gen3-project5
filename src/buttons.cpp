@@ -75,10 +75,10 @@ namespace bot {
                     if (!intake_active) {
                         break;
                     }
-                    run_upper_with_direction(4.0);
+                    run_upper_with_direction(6.0);
                     bot::upper_roller_stall = false;
                 } else {
-                    run_upper_with_direction(4.0);
+                    run_upper_with_direction(6.0);
                 }
                 vex::this_thread::sleep_for(50);
             }
@@ -95,7 +95,11 @@ namespace bot {
         void score_upper(){
             score_upper_running = true;
             while (score_upper_active) {
-                upper.spin(forward, 100, percent);
+                if (bot::upper_roller_direction) {
+                    upper.spin(forward, 100, percent);
+                } else {
+                    upper.spin(reverse, 100, percent);
+                }
                 lower.spin(forward, 100, percent);
                 vex::this_thread::sleep_for(20);
             }
@@ -163,8 +167,8 @@ namespace bot {
         }
 
         static void stop_r2_thread() {
-            bot::intake_methods::stop_outtaking();
-            cleanup_thread(button_threads.R2, bot::intake_methods::outtake_running);
+            bot::intake_methods::stop_scoring_upper();
+            cleanup_thread(button_threads.R2, bot::intake_methods::score_upper_running);
         }
 
         static void stop_l2_thread() {
@@ -173,40 +177,42 @@ namespace bot {
         }
 
         static void stop_conflicting_threads(vex::thread*& current_thread) {
-            if (&current_thread != &button_threads.R1) {
+            if (&current_thread != (vex::thread**)&button_threads.R1) {
                 stop_r1_thread();
             }
-            if (&current_thread != &button_threads.R2) {
+            if (&current_thread != (vex::thread**)&button_threads.R2) {
                 stop_r2_thread();
             }
-            if (&current_thread != &button_threads.L2) {
+            if (&current_thread != (vex::thread**)&button_threads.L2) {
                 stop_l2_thread();
             }
         }
     
         void ButtonL1(){
-            bot::pistons::arm_piston.set(false);
+            bot::pistons::back_arm_piston.set(false);
             //bot::motors::upper.spin(vex::forward, 100, vex::percent);
         }
         void ButtonL1_released(){
-            bot::pistons::arm_piston.set(true);
+            bot::pistons::back_arm_piston.set(true);
             //bot::motors::upper.stop();
             //bot::motors::mid.stop();
         }
         void ButtonL2(){
-            stop_conflicting_threads(button_threads.L2);
+            bot::pistons::front_arm_piston.set(false);
+            /*stop_conflicting_threads(button_threads.L2);
             cleanup_thread(button_threads.L2, bot::intake_methods::score_upper_running);
             if (button_threads.L2 == nullptr) {
                 bot::intake_methods::score_upper_active = true;
                 button_threads.L2 = new vex::thread(bot::intake_methods::score_upper);
             }
-            bot::pistons::hood_piston.set(true);
+            bot::pistons::hood_piston.set(true);*/
             //bot::motors::upper.spin(vex::reverse, 100, vex::percent);
             //bot::motors::mid.spin(vex::reverse, 50, vex::percent);
         }
         void ButtonL2_released(){
-            stop_l2_thread();
-            bot::pistons::hood_piston.set(false);
+            bot::pistons::front_arm_piston.set(true);
+            /*stop_l2_thread();
+            bot::pistons::hood_piston.set(false);*/
             //bot::motors::upper.stop();
             //bot::motors::mid.stop();
         }
@@ -223,20 +229,27 @@ namespace bot {
         }
         void ButtonR2(){
             stop_conflicting_threads(button_threads.R2);
-            cleanup_thread(button_threads.R2, bot::intake_methods::outtake_running);
+            if (bot::upper_roller_direction) {
+                bot::pistons::hood_piston.set(true);
+            } else {
+                bot::pistons::mid_piston.set(true);
+            }
+            cleanup_thread(button_threads.R2, bot::intake_methods::score_upper_running);
             if (button_threads.R2 == nullptr) {
-                bot::intake_methods::outtake_active = true;
-                button_threads.R2 = new vex::thread(bot::intake_methods::outtake);
+                bot::intake_methods::score_upper_active = true;
+                button_threads.R2 = new vex::thread(bot::intake_methods::score_upper);
             }
         }
         void ButtonR2_released(){
+            bot::pistons::hood_piston.set(false);
+            bot::pistons::mid_piston.set(false);
             stop_r2_thread();
         }
         void ButtonX(){
             bot::display_temperature();
         }
         void ButtonY(){
-            bot::intake_methods::toggle_middle_score();
+            //bot::intake_methods::toggle_middle_score();
             //bot::intake_methods::score_middle();
             //bot::intake_methods::intake();
         }

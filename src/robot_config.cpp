@@ -42,10 +42,13 @@ namespace bot {
 
 	namespace pistons {
 		vex::digital_out match_load_piston = vex::digital_out(bot::Brain.ThreeWirePort.B);
-		vex::digital_out arm_piston = vex::digital_out(bot::Brain.ThreeWirePort.A);
+		vex::digital_out front_arm_piston = vex::digital_out(bot::Brain.ThreeWirePort.G);
+		vex::digital_out back_arm_piston = vex::digital_out(bot::Brain.ThreeWirePort.A);
 		vex::digital_out hood_piston = vex::digital_out(bot::Brain.ThreeWirePort.H);
+		vex::digital_out mid_piston = vex::digital_out(bot::Brain.ThreeWirePort.F);
+		bot::piston_group arm_pistons = bot::piston_group(front_arm_piston, back_arm_piston);
 		void toggle_arm_piston() {
-			arm_piston.set(!arm_piston.value());
+			arm_pistons.toggle();
 		}
 		void toggle_match_load_piston() {
 			match_load_piston.set(!match_load_piston.value());

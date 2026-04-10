@@ -34,6 +34,14 @@ static void toggle_upper_roller_direction() {
   bot::upper_roller_direction = !bot::upper_roller_direction;
 }
 
+static void upper_roller_direction_highgoal() {
+  bot::upper_roller_direction = true;
+}
+
+static void upper_roller_direction_middlegoal() {
+  bot::upper_roller_direction = false;
+}
+
 PIDTuner optimizer = PIDTuner(bot::drivetrains::dt._drive_pid);
 
 static void tune_pid() {
@@ -142,13 +150,14 @@ void usercontrol(void) {
   bot::Controller1.ButtonA.pressed(bot::buttons::ButtonA);
   bot::Controller1.ButtonB.pressed(bot::buttons::ButtonB);
   bot::Controller1.ButtonX.pressed(bot::buttons::ButtonX);
-  bot::Controller1.ButtonY.pressed(bot::buttons::ButtonY);
-  bot::Controller1.ButtonY.released(bot::buttons::ButtonY_released);
+  bot::Controller1.ButtonY.pressed(toggle_drive_mode);
+  //bot::Controller1.ButtonY.pressed(bot::buttons::ButtonY);
+  //bot::Controller1.ButtonY.released(bot::buttons::ButtonY_released);
 
   bot::Controller1.ButtonLeft.pressed(bot::buttons::ButtonLeft);
-  bot::Controller1.ButtonRight.pressed(toggle_drive_mode);
   //bot::Controller1.ButtonRight.pressed(bot::buttons::ButtonRight);
-  bot::Controller1.ButtonDown.pressed(toggle_upper_roller_direction);
+  bot::Controller1.ButtonRight.pressed(upper_roller_direction_highgoal);
+  bot::Controller1.ButtonDown.pressed(upper_roller_direction_middlegoal);
   //bot::Controller1.ButtonDown.pressed(bot::buttons::ButtonDown);
   bot::Controller1.ButtonUp.pressed(bot::buttons::ButtonUp);
   
