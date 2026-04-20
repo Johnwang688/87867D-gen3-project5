@@ -16,6 +16,7 @@ namespace bot {
     extern bool mid_scoring_status;
     extern volatile bool upper_roller_direction;
     extern volatile bool upper_roller_stall;
+    extern volatile double stall_threshold;
 
     namespace intake_methods {
         void intake();

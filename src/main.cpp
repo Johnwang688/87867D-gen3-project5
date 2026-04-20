@@ -36,10 +36,12 @@ static void toggle_upper_roller_direction() {
 
 static void upper_roller_direction_highgoal() {
   bot::upper_roller_direction = true;
+  bot::stall_threshold = 0.35;
 }
 
 static void upper_roller_direction_middlegoal() {
   bot::upper_roller_direction = false;
+  bot::stall_threshold = 0.35;
 }
 
 PIDTuner optimizer = PIDTuner(bot::drivetrains::dt._drive_pid);
@@ -147,12 +149,12 @@ void usercontrol(void) {
   bot::Controller1.ButtonR2.pressed(bot::buttons::ButtonR2);
   bot::Controller1.ButtonR2.released(bot::buttons::ButtonR2_released);
 
-  bot::Controller1.ButtonA.pressed(bot::buttons::ButtonA);
+  //bot::Controller1.ButtonA.pressed(bot::buttons::ButtonA);
+  bot::Controller1.ButtonA.pressed(toggle_drive_mode);
   bot::Controller1.ButtonB.pressed(bot::buttons::ButtonB);
   bot::Controller1.ButtonX.pressed(bot::buttons::ButtonX);
-  bot::Controller1.ButtonY.pressed(toggle_drive_mode);
-  //bot::Controller1.ButtonY.pressed(bot::buttons::ButtonY);
-  //bot::Controller1.ButtonY.released(bot::buttons::ButtonY_released);
+  bot::Controller1.ButtonY.pressed(bot::buttons::ButtonY);
+  bot::Controller1.ButtonY.released(bot::buttons::ButtonY_released);
 
   bot::Controller1.ButtonLeft.pressed(bot::buttons::ButtonLeft);
   //bot::Controller1.ButtonRight.pressed(bot::buttons::ButtonRight);
@@ -166,6 +168,7 @@ void usercontrol(void) {
   double left_joystick, right_joystick;
   double left, right;
   double fwd, turn;
+  double magnitude;
   //double A = 0.012;
   //double K = 8;
 
@@ -181,6 +184,12 @@ void usercontrol(void) {
 
     left = left_joystick;
     right = right_joystick;
+    
+    /*if (fabs(left - right) < 5.0) {
+      magnitude = (left + right) / 2.0;
+      left = magnitude;
+      right = magnitude;
+    }*/
 
     fwd = left_joystick;
     turn = right_joystick;
@@ -195,8 +204,8 @@ void usercontrol(void) {
     // deadzone adjustment
     if (fabs(left) < CONTROLLER_DEADZONE) left = 0.0;
     if (fabs(right) < CONTROLLER_DEADZONE) right = 0.0;
-    if (fabs(fwd) < CONTROLLER_DEADZONE) fwd = 0.0;
-    if (fabs(turn) < CONTROLLER_DEADZONE) turn = 0.0;
+    if (fabs(fwd) < 1.0) fwd = 0.0;
+    if (fabs(turn) < 1.0) turn = 0.0;
      
     left = (leftY < 0) ? -left_joystick : left_joystick;
     right = (rightY < 0) ? -right_joystick : right_joystick;

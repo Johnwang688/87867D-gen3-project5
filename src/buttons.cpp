@@ -3,6 +3,7 @@
 
 namespace bot {
     bool mid_scoring_status = false;
+    volatile double stall_threshold = 0.35;
     volatile bool upper_roller_stall = false;
     void display_temperature() {
         double max_left_temp = 0.0, max_right_temp = 0.0;
@@ -52,22 +53,24 @@ namespace bot {
         volatile bool outtake_active = false;
         volatile bool outtake_running = false;
 
-        static void run_upper_with_direction(double voltage) {
+        static void run_upper_with_direction() {
             if (bot::upper_roller_direction) {
-                upper.spin(forward, voltage, vex::volt);
+                upper.spin(forward, 6.0, vex::volt);
             } else {
-                upper.spin(reverse, voltage, vex::volt);
+                upper.spin(reverse, 7.0, vex::volt);
             }
         }
 
         void intake(){
+            bot::stall_threshold = 0.35;
             intake_running = true;
             lower.spin(forward, 100, percent);
             bot::upper_roller_stall = false;
             while (intake_active) {
                 upper_roller_torque = upper.torque(vex::torqueUnits::Nm);
-                if (upper_roller_torque > 0.35 /*|| upper_roller_current > 0.63*/) {
+                if (upper_roller_torque > bot::stall_threshold /*|| upper_roller_current > 0.63*/) {
                     bot::upper_roller_stall = true;
+                    bot::stall_threshold = 0.1;
                 }
                 if (bot::upper_roller_stall) {
                     upper.stop();
@@ -75,10 +78,10 @@ namespace bot {
                     if (!intake_active) {
                         break;
                     }
-                    run_upper_with_direction(6.0);
+                    run_upper_with_direction();
                     bot::upper_roller_stall = false;
                 } else {
-                    run_upper_with_direction(6.0);
+                    run_upper_with_direction();
                 }
                 vex::this_thread::sleep_for(50);
             }
@@ -114,18 +117,14 @@ namespace bot {
             lower.stop();
         }
         void outtake(){
-            outtake_running = true;
-            while (outtake_active) {
-                lower.spin(reverse, 100, percent);
-                vex::this_thread::sleep_for(20);
-            }
-            outtake_active = false;
-            outtake_running = false;
-            lower.stop();
+            upper.spin(vex::reverse, 100, vex::percent);
+            lower.spin(vex::reverse, 100, vex::percent);
+            outtake_active = true;
         }
         void stop_outtaking(){
-            outtake_active = false;
+            upper.stop();
             lower.stop();
+            outtake_active = false;
         }
 
         void score_middle(){
@@ -230,7 +229,8 @@ namespace bot {
         void ButtonR2(){
             stop_conflicting_threads(button_threads.R2);
             if (bot::upper_roller_direction) {
-                bot::pistons::hood_piston.set(true);
+                bot::pistons::_match_load_piston.set(false);
+                bot::pistons::_hood_piston.set(true);
             } else {
                 bot::pistons::mid_piston.set(true);
             }
@@ -252,10 +252,12 @@ namespace bot {
             //bot::intake_methods::toggle_middle_score();
             //bot::intake_methods::score_middle();
             //bot::intake_methods::intake();
+            bot::intake_methods::outtake();
         }
         void ButtonY_released(){
             //bot::intake_methods::stop_scoring_middle();
             //bot::intake_methods::stop_intaking();
+            bot::intake_methods::stop_outtaking();
         }
         void ButtonA(){
             //debug::print_sensor_data();

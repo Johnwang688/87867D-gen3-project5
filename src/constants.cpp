@@ -4,13 +4,13 @@
 const double PI = 3.14159265358979323846;
 
 // PID constants
-const double DRIVE_KP = 0.15;
+const double DRIVE_KP = 0.12;
 const double DRIVE_KI = 0.0;
-const double DRIVE_KD = 0.0035;
+const double DRIVE_KD = 0.01;
 
-const double TURN_KP = 0.90;
+const double TURN_KP = 1.4;
 const double TURN_KI = 0.0;
-const double TURN_KD = 0.03;
+const double TURN_KD = 0.065;
 
 const double ARC_KP = 0.08;
 const double ARC_KI = 0.01;
@@ -21,7 +21,7 @@ const double MAX_OUTPUT = 100.0;
 const double DT = 0.02; // seconds
 
 // drivetrain feedforward constanst
-const double DRIVE_KS = 0.10;
+const double DRIVE_KS = 0.105;
 
 //ramsete feedforward constants
 const double KS = 0.80;
